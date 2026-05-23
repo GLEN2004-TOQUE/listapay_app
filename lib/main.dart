@@ -104,6 +104,15 @@ class _MyHomePageState extends State<MyHomePage> {
           // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Image.asset(
+              'img/logo.png',
+              height: 100,
+              errorBuilder: (context, error, stackTrace) {
+                // This is the "default" shown if logo.png is missing or fails to load
+                return const Icon(Icons.image, size: 100, color: Colors.grey);
+              },
+            ),
+            const SizedBox(height: 20),
             const Text('You have pushed the button this many times:'),
             Text(
               '$_counter',
