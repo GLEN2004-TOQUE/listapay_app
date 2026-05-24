@@ -100,6 +100,15 @@ class NotificationLog extends Table {
   DateTimeColumn get sentAt => dateTime().withDefault(currentDateAndTime)();
 }
 
+/// Key/value metadata for sync (e.g. last_pull_at).
+class SyncMeta extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {key};
+}
+
 @DriftDatabase(tables: [
   Users,
   Categories,
@@ -111,12 +120,25 @@ class NotificationLog extends Table {
   Payments,
   SyncQueue,
   NotificationLog,
+  SyncMeta,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) async {
+          await m.createAll();
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(syncMeta);
+          }
+        },
+      );
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'listapay_db');

@@ -1,5 +1,5 @@
 enum PaymentMethod {
-  cash('cash', 'Cash'),
+  cash('cash', 'Cash / On-hand'),
   gcash('gcash', 'GCash'),
   maya('maya', 'Maya'),
   utang('utang', 'Utang');
@@ -17,4 +17,13 @@ enum PaymentMethod {
   }
 
   bool get requiresCustomer => this == PaymentMethod.utang;
+
+  bool get showsEwalletDetails => this == gcash || this == maya;
+
+  String get checkoutSubtitle => switch (this) {
+        PaymentMethod.cash => 'Pay with cash on hand',
+        PaymentMethod.gcash => 'Customer scans your GCash QR',
+        PaymentMethod.maya => 'Customer scans your Maya QR',
+        PaymentMethod.utang => 'Record as customer debt',
+      };
 }

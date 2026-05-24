@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:listapay/presentation/auth/auth_cubit.dart';
+import 'package:listapay/presentation/auth/change_pin_screen.dart';
 import 'package:listapay/presentation/auth/login_screen.dart';
 import 'package:listapay/presentation/customers/customer_form_screen.dart';
 import 'package:listapay/presentation/customers/customers_screen.dart';
@@ -22,6 +24,7 @@ import 'package:listapay/presentation/splash/splash_screen.dart';
 abstract final class AppRoutes {
   static const splash = '/';
   static const login = '/login';
+  static const changePin = '/change-pin';
   static const home = '/home';
   static const pos = '/pos';
   static const posCheckout = '/pos/checkout';
@@ -42,6 +45,9 @@ abstract final class AppRoutes {
   static String debtDetail(int id) => '/debt/$id';
 }
 
+bool _isAdminOnlyRoute(String path) =>
+    path == AppRoutes.reports || path == AppRoutes.settings;
+
 GoRouter createAppRouter(AuthCubit authCubit) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
@@ -56,6 +62,7 @@ GoRouter createAppRouter(AuthCubit authCubit) {
       }
 
       final isLoggedIn = auth.status == AuthStatus.authenticated;
+      final user = auth.user;
 
       if (!isLoggedIn && path == AppRoutes.splash) {
         return AppRoutes.login;
@@ -63,9 +70,31 @@ GoRouter createAppRouter(AuthCubit authCubit) {
       if (!isLoggedIn && path != AppRoutes.login) {
         return AppRoutes.login;
       }
-      if (isLoggedIn && (path == AppRoutes.login || path == AppRoutes.splash)) {
-        return AppRoutes.home;
+
+      if (isLoggedIn) {
+        if (auth.requiresPinChange) {
+          if (path != AppRoutes.changePin) {
+            return AppRoutes.changePin;
+          }
+          return null;
+        }
+
+        if (path == AppRoutes.changePin && !auth.requiresPinChange) {
+          final voluntary = state.extra == true;
+          if (!voluntary) return AppRoutes.home;
+        }
+
+        if (user != null &&
+            !user.isAdmin &&
+            _isAdminOnlyRoute(path)) {
+          return AppRoutes.home;
+        }
+
+        if (path == AppRoutes.login || path == AppRoutes.splash) {
+          return AppRoutes.home;
+        }
       }
+
       return null;
     },
     routes: [
@@ -76,6 +105,14 @@ GoRouter createAppRouter(AuthCubit authCubit) {
       GoRoute(
         path: AppRoutes.login,
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.changePin,
+        builder: (context, state) {
+          final auth = context.read<AuthCubit>().state;
+          final forced = auth.requiresPinChange;
+          return ChangePinScreen(forced: forced);
+        },
       ),
       GoRoute(
         path: AppRoutes.home,

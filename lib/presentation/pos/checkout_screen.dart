@@ -7,14 +7,18 @@ import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/core/utils/currency_format.dart';
 import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/data/services/notification_service.dart';
+import 'package:listapay/data/services/payment_config_service.dart';
 import 'package:listapay/data/services/receipt_service.dart';
 import 'package:listapay/domain/entities/completed_sale.dart';
+import 'package:listapay/domain/entities/ewallet_payment_config.dart';
 import 'package:listapay/domain/entities/customer_summary.dart';
 import 'package:listapay/domain/entities/payment_method.dart';
 import 'package:listapay/domain/repositories/customer_repository.dart';
 import 'package:listapay/domain/repositories/pos_repository.dart';
 import 'package:listapay/presentation/auth/auth_cubit.dart';
 import 'package:listapay/presentation/pos/cart_cubit.dart';
+import 'package:listapay/presentation/pos/widgets/payment_method_tile.dart';
+import 'package:listapay/presentation/pos/widgets/payment_qr_panel.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -30,11 +34,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   DateTime _dueDate = DateTime.now().add(const Duration(days: 30));
   bool _loadingCustomers = true;
   bool _isProcessing = false;
+  EwalletPaymentConfig? _ewalletConfig;
+  bool _loadingEwallet = false;
 
   @override
   void initState() {
     super.initState();
     _loadCustomers();
+    _loadEwalletConfig(_paymentMethod);
+  }
+
+  Future<void> _loadEwalletConfig(PaymentMethod method) async {
+    if (!method.showsEwalletDetails) {
+      if (mounted) setState(() => _ewalletConfig = null);
+      return;
+    }
+    setState(() => _loadingEwallet = true);
+    final config =
+        await context.read<PaymentConfigService>().getConfig(method);
+    if (mounted) {
+      setState(() {
+        _ewalletConfig = config;
+        _loadingEwallet = false;
+      });
+    }
+  }
+
+  void _selectPaymentMethod(PaymentMethod method) {
+    setState(() => _paymentMethod = method);
+    _loadEwalletConfig(method);
   }
 
   Future<void> _loadCustomers() async {
@@ -271,21 +299,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
               ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: PaymentMethod.values.map((method) {
-                  final selected = _paymentMethod == method;
-                  return ChoiceChip(
-                    label: Text(method.label),
-                    selected: selected,
-                    onSelected: _isProcessing
-                        ? null
-                        : (_) => setState(() => _paymentMethod = method),
-                    selectedColor: AppColors.primary.withValues(alpha: 0.2),
-                  );
-                }).toList(),
-              ),
+              ...PaymentMethod.values.map((method) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: PaymentMethodTile(
+                    method: method,
+                    selected: _paymentMethod == method,
+                    enabled: !_isProcessing,
+                    onTap: () => _selectPaymentMethod(method),
+                  ),
+                );
+              }),
+              if (_paymentMethod.showsEwalletDetails) ...[
+                const SizedBox(height: 12),
+                if (_loadingEwallet)
+                  const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else
+                  PaymentQrPanel(
+                    method: _paymentMethod,
+                    config: _ewalletConfig ?? const EwalletPaymentConfig(),
+                  ),
+              ],
               if (_paymentMethod.requiresCustomer) ...[
                 const SizedBox(height: 20),
                 Row(

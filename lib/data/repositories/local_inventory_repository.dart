@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:listapay/data/database/app_database.dart';
+import 'package:listapay/data/services/sync_enqueue.dart';
 import 'package:listapay/domain/entities/product_category.dart';
 import 'package:listapay/domain/entities/product_item.dart';
 import 'package:listapay/domain/repositories/inventory_repository.dart';
@@ -143,6 +144,7 @@ class LocalInventoryRepository implements InventoryRepository {
         'Cannot delete — product is linked to past sales.',
       );
     }
+    await enqueueSyncDelete(_db, entityTable: 'products', localId: id);
     await (_db.delete(_db.products)..where((p) => p.id.equals(id))).go();
   }
 
@@ -190,6 +192,7 @@ class LocalInventoryRepository implements InventoryRepository {
         'Cannot delete — category still has products.',
       );
     }
+    await enqueueSyncDelete(_db, entityTable: 'categories', localId: id);
     await (_db.delete(_db.categories)..where((c) => c.id.equals(id))).go();
   }
 

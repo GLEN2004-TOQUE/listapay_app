@@ -1,8 +1,24 @@
 import 'package:listapay/domain/entities/app_user.dart';
 
+class LoginResult {
+  const LoginResult({
+    required this.user,
+    this.mustChangePin = false,
+  });
+
+  final AppUser user;
+  final bool mustChangePin;
+}
+
 abstract class AuthRepository {
   Future<void> initialize();
   Future<AppUser?> getCurrentUser();
-  Future<AppUser> loginWithPin(String pin);
+  Future<bool> mustChangePinForUser(int userId);
+  Future<LoginResult> loginWithPin(String pin);
+  Future<void> changePin({
+    required int userId,
+    required String currentPin,
+    required String newPin,
+  });
   Future<void> logout();
 }

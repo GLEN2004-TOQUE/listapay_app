@@ -118,19 +118,19 @@ class HomeScreen extends StatelessWidget {
                       subtitle: 'Products & stock',
                       onTap: () => context.push(AppRoutes.inventory),
                     ),
-                    ModuleCard(
-                      icon: Icons.bar_chart,
-                      label: 'Reports',
-                      onTap: user.isAdmin
-                          ? () => context.push(AppRoutes.reports)
-                          : () => _showDenied(context),
-                    ),
-                    ModuleCard(
-                      icon: Icons.settings_outlined,
-                      label: 'Settings',
-                      subtitle: 'Sync & config',
-                      onTap: () => context.push(AppRoutes.settings),
-                    ),
+                    if (user.isAdmin) ...[
+                      ModuleCard(
+                        icon: Icons.bar_chart,
+                        label: 'Reports',
+                        onTap: () => context.push(AppRoutes.reports),
+                      ),
+                      ModuleCard(
+                        icon: Icons.settings_outlined,
+                        label: 'Settings',
+                        subtitle: 'Sync & config',
+                        onTap: () => context.push(AppRoutes.settings),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -141,9 +141,4 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  void _showDenied(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Reports are for admin only.')),
-    );
-  }
 }

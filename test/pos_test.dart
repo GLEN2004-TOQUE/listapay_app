@@ -18,4 +18,14 @@ void main() {
     expect(PaymentMethod.utang.requiresCustomer, isTrue);
     expect(PaymentMethod.cash.requiresCustomer, isFalse);
   });
+
+  test('Cash label is Cash / On-hand', () {
+    expect(PaymentMethod.cash.label, 'Cash / On-hand');
+  });
+
+  test('GCash and Maya show e-wallet details at checkout', () {
+    expect(PaymentMethod.gcash.showsEwalletDetails, isTrue);
+    expect(PaymentMethod.maya.showsEwalletDetails, isTrue);
+    expect(PaymentMethod.cash.showsEwalletDetails, isFalse);
+  });
 }

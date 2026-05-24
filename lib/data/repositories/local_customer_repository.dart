@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:listapay/data/database/app_database.dart';
+import 'package:listapay/data/services/sync_enqueue.dart';
 import 'package:listapay/domain/entities/customer.dart' as entities;
 import 'package:listapay/domain/entities/customer_summary.dart';
 import 'package:listapay/domain/repositories/customer_repository.dart';
@@ -75,6 +76,7 @@ class LocalCustomerRepository implements CustomerRepository {
       );
     }
 
+    await enqueueSyncDelete(_db, entityTable: 'customers', localId: id);
     await (_db.delete(_db.customers)..where((c) => c.id.equals(id))).go();
   }
 

@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:listapay/core/router/app_router.dart';
 import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/data/services/connectivity_service.dart';
 import 'package:listapay/data/services/debt_sms_reminder_service.dart';
 import 'package:listapay/data/services/notification_service.dart';
 import 'package:listapay/data/services/sms_service.dart';
+import 'package:listapay/data/services/store_session_service.dart';
+import 'package:listapay/data/services/sync_service.dart';
 import 'package:listapay/presentation/modules/module_scaffold.dart';
+import 'package:listapay/presentation/settings/payment_settings_sheet.dart';
 import 'package:listapay/presentation/settings/sms_settings_sheet.dart';
+import 'package:listapay/presentation/settings/sync_settings_sheet.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -16,6 +22,8 @@ class SettingsScreen extends StatelessWidget {
     final connectivity = context.read<ConnectivityService>();
     final notifications = context.read<NotificationService>();
     final sms = context.read<SmsService>();
+    final storeSession = context.read<StoreSessionService>();
+    final sync = context.read<SyncService>();
 
     return ModuleScaffold(
       title: 'Settings',
@@ -50,6 +58,28 @@ class SettingsScreen extends StatelessWidget {
             child: Column(
               children: [
                 ListTile(
+                  leading: const Icon(Icons.pin_outlined),
+                  title: const Text('Change admin PIN'),
+                  subtitle: const Text('Update your sign-in PIN on this device'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push(AppRoutes.changePin, extra: true),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.qr_code_2),
+                  title: const Text('Payment methods'),
+                  subtitle: const Text('GCash & Maya QR codes and account numbers'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) => const PaymentSettingsSheet(),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
                   leading: const Icon(Icons.sms_outlined),
                   title: const Text('Semaphore SMS'),
                   subtitle: FutureBuilder<bool>(
@@ -74,14 +104,40 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const Divider(height: 1),
                 ListTile(
+                  leading: const Icon(Icons.cloud_sync_outlined),
+                  title: const Text('Cloud sync'),
+                  subtitle: FutureBuilder<bool>(
+                    future: storeSession.isPaired(),
+                    builder: (context, snapshot) {
+                      final paired = snapshot.data ?? false;
+                      return Text(
+                        paired ? 'Paired — tap to sync or manage' : 'Not paired — tap to connect',
+                      );
+                    },
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) => const SyncSettingsSheet(),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
                   leading: const Icon(Icons.sync),
                   title: const Text('Sync now'),
-                  subtitle: const Text('Coming in Phase 7'),
-                  onTap: () {
+                  subtitle: const Text('Push local changes and pull updates'),
+                  onTap: () async {
+                    final result = await sync.syncNow();
+                    if (!context.mounted) return;
+                    final text = result.skipped
+                        ? (result.message ?? 'Sync skipped')
+                        : result.message ??
+                            'Synced — pushed ${result.pushed}, pulled ${result.pulled}';
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Sync engine not connected yet.'),
-                      ),
+                      SnackBar(content: Text(text)),
                     );
                   },
                 ),
@@ -104,10 +160,10 @@ class SettingsScreen extends StatelessWidget {
                   title: const Text('Check debts now'),
                   subtitle: const Text('Local alerts + SMS if online'),
                   onTap: () async {
+                    final reminders = context.read<DebtSmsReminderService>();
                     await notifications.runDebtChecks();
-                    final result =
-                        await context.read<DebtSmsReminderService>().processReminders();
-                    await context.read<DebtSmsReminderService>().processRetryQueue();
+                    final result = await reminders.processReminders();
+                    await reminders.processRetryQueue();
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

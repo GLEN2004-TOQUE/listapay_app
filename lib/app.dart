@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:listapay/core/config/supabase_config.dart';
 import 'package:listapay/core/router/app_router.dart';
 import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/data/database/app_database.dart';
@@ -14,8 +15,12 @@ import 'package:listapay/data/repositories/local_pos_repository.dart';
 import 'package:listapay/data/services/connectivity_service.dart';
 import 'package:listapay/data/services/debt_sms_reminder_service.dart';
 import 'package:listapay/data/services/notification_service.dart';
+import 'package:listapay/data/services/payment_config_service.dart';
 import 'package:listapay/data/services/receipt_service.dart';
+import 'package:listapay/data/services/reports_service.dart';
 import 'package:listapay/data/services/sms_service.dart';
+import 'package:listapay/data/services/store_session_service.dart';
+import 'package:listapay/data/services/sync_service.dart';
 import 'package:listapay/domain/repositories/auth_repository.dart';
 import 'package:listapay/domain/repositories/customer_repository.dart';
 import 'package:listapay/domain/repositories/debt_repository.dart';
@@ -41,6 +46,10 @@ class _ListaPayAppState extends State<ListaPayApp> {
   late final NotificationService _notificationService;
   late final SmsService _smsService;
   late final DebtSmsReminderService _debtSmsReminderService;
+  late final StoreSessionService _storeSessionService;
+  late final SyncService _syncService;
+  late final ReportsService _reportsService;
+  late final PaymentConfigService _paymentConfigService;
   late final ConnectivityService _connectivity;
   late final AuthCubit _authCubit;
   late final GoRouter _router;
@@ -67,6 +76,14 @@ class _ListaPayAppState extends State<ListaPayApp> {
       smsService: _smsService,
       notificationService: _notificationService,
     );
+    _storeSessionService = StoreSessionService();
+    _syncService = SyncService(
+      db: _database,
+      storeSession: _storeSessionService,
+      connectivity: _connectivity,
+    );
+    _reportsService = ReportsService(_database);
+    _paymentConfigService = PaymentConfigService(_database);
     _authCubit = AuthCubit(_authRepository);
     _router = createAppRouter(_authCubit);
     _notificationService.onNavigate = _router.go;
@@ -86,6 +103,9 @@ class _ListaPayAppState extends State<ListaPayApp> {
       }
     });
     await _authCubit.checkSession();
+    if (SupabaseConfig.isConfigured) {
+      unawaited(_storeSessionService.restoreSessionIfNeeded());
+    }
     // Notifications can prompt for permissions; do not block auth routing.
     unawaited(_notificationService.initialize());
   }
@@ -126,6 +146,14 @@ class _ListaPayAppState extends State<ListaPayApp> {
           value: _debtSmsReminderService,
         ),
         RepositoryProvider<ConnectivityService>.value(value: _connectivity),
+        RepositoryProvider<StoreSessionService>.value(
+          value: _storeSessionService,
+        ),
+        RepositoryProvider<SyncService>.value(value: _syncService),
+        RepositoryProvider<ReportsService>.value(value: _reportsService),
+        RepositoryProvider<PaymentConfigService>.value(
+          value: _paymentConfigService,
+        ),
         RepositoryProvider<AppDatabase>.value(value: _database),
       ],
       child: BlocProvider.value(
