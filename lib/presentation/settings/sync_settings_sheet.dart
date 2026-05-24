@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:listapay/core/config/supabase_config.dart';
+import 'package:listapay/core/security/device_binding_service.dart';
 import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/data/services/store_session_service.dart';
 import 'package:listapay/data/services/sync_service.dart';
@@ -44,9 +45,11 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
 
     setState(() => _busy = true);
     try {
+      final deviceId = await context.read<DeviceBindingService>().currentDeviceId();
       final session = await context.read<StoreSessionService>().pairWithCode(
             _codeController.text,
             deviceLabel: _labelController.text,
+            deviceFingerprint: deviceId,
           );
       if (mounted) {
         setState(() => _session = session);

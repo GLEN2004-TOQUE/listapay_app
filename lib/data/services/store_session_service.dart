@@ -51,7 +51,11 @@ class StoreSessionService {
     await _client.auth.signInAnonymously();
   }
 
-  Future<StoreSession> pairWithCode(String code, {String? deviceLabel}) async {
+  Future<StoreSession> pairWithCode(
+    String code, {
+    String? deviceLabel,
+    String? deviceFingerprint,
+  }) async {
     final trimmed = code.trim().toUpperCase();
     if (trimmed.length < 6) {
       throw const StoreSessionException('Enter a valid pairing code.');
@@ -63,12 +67,18 @@ class StoreSessionService {
         ? deviceLabel!.trim()
         : 'POS Device';
 
+    final params = <String, dynamic>{
+      'p_code': trimmed,
+      'p_device_label': label,
+    };
+    final fingerprint = deviceFingerprint?.trim();
+    if (fingerprint != null && fingerprint.isNotEmpty) {
+      params['p_device_fingerprint'] = fingerprint;
+    }
+
     final result = await _client.rpc(
       'pair_store_device',
-      params: {
-        'p_code': trimmed,
-        'p_device_label': label,
-      },
+      params: params,
     );
 
     if (result is! Map) {

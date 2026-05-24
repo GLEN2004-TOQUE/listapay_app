@@ -5,7 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:listapay/core/config/supabase_config.dart';
 import 'package:listapay/core/router/app_router.dart';
+import 'package:listapay/core/security/device_binding_service.dart';
 import 'package:listapay/core/theme/app_theme.dart';
+import 'package:listapay/presentation/security/device_blocked_screen.dart';
 import 'package:listapay/data/database/app_database.dart';
 import 'package:listapay/data/repositories/local_auth_repository.dart';
 import 'package:listapay/data/repositories/local_customer_repository.dart';
@@ -27,6 +29,7 @@ import 'package:listapay/domain/repositories/debt_repository.dart';
 import 'package:listapay/domain/repositories/inventory_repository.dart';
 import 'package:listapay/domain/repositories/pos_repository.dart';
 import 'package:listapay/presentation/auth/auth_cubit.dart';
+import 'package:listapay/presentation/splash/splash_screen.dart';
 
 class ListaPayApp extends StatefulWidget {
   const ListaPayApp({super.key});
@@ -47,6 +50,7 @@ class _ListaPayAppState extends State<ListaPayApp> {
   late final SmsService _smsService;
   late final DebtSmsReminderService _debtSmsReminderService;
   late final StoreSessionService _storeSessionService;
+  late final DeviceBindingService _deviceBindingService;
   late final SyncService _syncService;
   late final ReportsService _reportsService;
   late final PaymentConfigService _paymentConfigService;
@@ -55,6 +59,9 @@ class _ListaPayAppState extends State<ListaPayApp> {
   late final GoRouter _router;
   StreamSubscription<AuthState>? _authSubscription;
   bool _debtCheckRan = false;
+  bool _deviceBindingChecked = false;
+  bool _deviceBindingBlocked = false;
+  String? _deviceBindingMessage;
 
   @override
   void initState() {
@@ -77,6 +84,7 @@ class _ListaPayAppState extends State<ListaPayApp> {
       notificationService: _notificationService,
     );
     _storeSessionService = StoreSessionService();
+    _deviceBindingService = DeviceBindingService();
     _syncService = SyncService(
       db: _database,
       storeSession: _storeSessionService,
@@ -91,6 +99,21 @@ class _ListaPayAppState extends State<ListaPayApp> {
   }
 
   Future<void> _bootstrap() async {
+    final binding = await _deviceBindingService.verifyOrBind();
+    if (!binding.isAllowed) {
+      if (mounted) {
+        setState(() {
+          _deviceBindingChecked = true;
+          _deviceBindingBlocked = true;
+          _deviceBindingMessage =
+              'This install does not match the device this copy of ListaPay '
+              'was first activated on. Copied app data or a duplicate APK was '
+              'detected.';
+        });
+      }
+      return;
+    }
+
     await _authRepository.initialize();
     await _inventoryRepository.initialize();
     _authSubscription = _authCubit.stream.listen((state) async {
@@ -108,6 +131,10 @@ class _ListaPayAppState extends State<ListaPayApp> {
     }
     // Notifications can prompt for permissions; do not block auth routing.
     unawaited(_notificationService.initialize());
+
+    if (mounted) {
+      setState(() => _deviceBindingChecked = true);
+    }
   }
 
   Future<void> _runDebtAndSmsChecks() async {
@@ -126,6 +153,24 @@ class _ListaPayAppState extends State<ListaPayApp> {
 
   @override
   Widget build(BuildContext context) {
+    if (_deviceBindingBlocked) {
+      return MaterialApp(
+        title: 'ListaPay',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        home: DeviceBlockedScreen(message: _deviceBindingMessage),
+      );
+    }
+
+    if (!_deviceBindingChecked) {
+      return MaterialApp(
+        title: 'ListaPay',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        home: const SplashScreen(),
+      );
+    }
+
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<AuthRepository>.value(value: _authRepository),
@@ -148,6 +193,9 @@ class _ListaPayAppState extends State<ListaPayApp> {
         RepositoryProvider<ConnectivityService>.value(value: _connectivity),
         RepositoryProvider<StoreSessionService>.value(
           value: _storeSessionService,
+        ),
+        RepositoryProvider<DeviceBindingService>.value(
+          value: _deviceBindingService,
         ),
         RepositoryProvider<SyncService>.value(value: _syncService),
         RepositoryProvider<ReportsService>.value(value: _reportsService),
