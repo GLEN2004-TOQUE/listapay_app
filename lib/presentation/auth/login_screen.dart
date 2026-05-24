@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:listapay/core/security/pin_policy.dart';
 import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/presentation/auth/auth_cubit.dart';
@@ -24,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _submit() {
     final pin = _pinController.text.trim();
-    if (pin.length < 4) return;
+    if (pin.length < 4 || pin.length > PinPolicy.maxLength) return;
     context.read<AuthCubit>().login(pin);
   }
 
@@ -99,9 +100,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: isLoading ? null : _submit,
                         child: const Text('Continue'),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Text(
-                        'Default admin PIN: 1234',
+                        'After first install you must set a new ${PinPolicy.minLength}-digit PIN.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: AppColors.textSecondary,

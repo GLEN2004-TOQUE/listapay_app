@@ -12,11 +12,12 @@ class AuthCubit extends Cubit<AuthState> {
   final AuthRepository _authRepository;
 
   Future<void> checkSession() async {
-    emit(state.copyWith(status: AuthStatus.loading));
+    emit(state.copyWith(status: AuthStatus.loading, clearError: true));
     try {
       final user = await _authRepository.getCurrentUser();
       if (user != null) {
-        emit(AuthState.authenticated(user));
+        final mustChange = await _authRepository.mustChangePinForUser(user.id);
+        emit(AuthState.authenticated(user, requiresPinChange: mustChange));
       } else {
         emit(const AuthState.unauthenticated());
       }
@@ -26,10 +27,15 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> login(String pin) async {
-    emit(state.copyWith(status: AuthStatus.loading, errorMessage: null));
+    emit(state.copyWith(status: AuthStatus.loading, clearError: true));
     try {
-      final user = await _authRepository.loginWithPin(pin);
-      emit(AuthState.authenticated(user));
+      final result = await _authRepository.loginWithPin(pin);
+      emit(
+        AuthState.authenticated(
+          result.user,
+          requiresPinChange: result.mustChangePin,
+        ),
+      );
     } on AuthException catch (e) {
       emit(state.copyWith(
         status: AuthStatus.unauthenticated,
@@ -40,6 +46,28 @@ class AuthCubit extends Cubit<AuthState> {
         status: AuthStatus.unauthenticated,
         errorMessage: 'Login failed. Try again.',
       ));
+    }
+  }
+
+  Future<String?> changePin({
+    required String currentPin,
+    required String newPin,
+  }) async {
+    final user = state.user;
+    if (user == null) return 'Not signed in.';
+
+    try {
+      await _authRepository.changePin(
+        userId: user.id,
+        currentPin: currentPin,
+        newPin: newPin,
+      );
+      emit(AuthState.authenticated(user));
+      return null;
+    } on AuthException catch (e) {
+      return e.message;
+    } catch (_) {
+      return 'Could not update PIN. Try again.';
     }
   }
 

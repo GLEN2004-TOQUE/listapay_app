@@ -7,6 +7,7 @@ class AuthState extends Equatable {
     required this.status,
     this.user,
     this.errorMessage,
+    this.requiresPinChange = false,
   });
 
   const AuthState.unknown() : this(status: AuthStatus.unknown);
@@ -14,25 +15,35 @@ class AuthState extends Equatable {
   const AuthState.unauthenticated()
       : this(status: AuthStatus.unauthenticated);
 
-  AuthState.authenticated(AppUser user)
-      : this(status: AuthStatus.authenticated, user: user);
+  AuthState.authenticated(
+    AppUser user, {
+    bool requiresPinChange = false,
+  }) : this(
+          status: AuthStatus.authenticated,
+          user: user,
+          requiresPinChange: requiresPinChange,
+        );
 
   final AuthStatus status;
   final AppUser? user;
   final String? errorMessage;
+  final bool requiresPinChange;
 
   AuthState copyWith({
     AuthStatus? status,
     AppUser? user,
     String? errorMessage,
+    bool? requiresPinChange,
+    bool clearError = false,
   }) {
     return AuthState(
       status: status ?? this.status,
       user: user ?? this.user,
-      errorMessage: errorMessage,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      requiresPinChange: requiresPinChange ?? this.requiresPinChange,
     );
   }
 
   @override
-  List<Object?> get props => [status, user, errorMessage];
+  List<Object?> get props => [status, user, errorMessage, requiresPinChange];
 }
