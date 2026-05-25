@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:listapay/data/database/app_database.dart';
+import 'package:listapay/data/services/sync_enqueue.dart';
 import 'package:listapay/domain/entities/debt_line_item.dart';
 import 'package:listapay/domain/entities/debt_payment.dart';
 import 'package:listapay/domain/entities/debt_record.dart';
@@ -94,6 +95,45 @@ class LocalDebtRepository implements DebtRepository {
   }
 
   @override
+  Future<void> updateDebt({
+    required int debtId,
+    required int customerId,
+    required DateTime dueDate,
+  }) async {
+    final debt = await getDebt(debtId);
+    if (debt == null) {
+      throw const DebtException('Debt not found.');
+    }
+
+    final normalizedDueDate = DateTime(dueDate.year, dueDate.month, dueDate.day);
+    final status = debt.isFullyPaid
+        ? 'paid'
+        : normalizedDueDate.isBefore(_startOfToday())
+        ? 'overdue'
+        : 'pending';
+
+    await _db.transaction(() async {
+      await (_db.update(_db.debts)..where((d) => d.id.equals(debtId))).write(
+        DebtsCompanion(
+          customerId: Value(customerId),
+          dueDate: Value(normalizedDueDate),
+          status: Value(status),
+          synced: const Value(false),
+        ),
+      );
+
+      if (debt.saleId != null) {
+        await (_db.update(_db.sales)..where((s) => s.id.equals(debt.saleId!))).write(
+          SalesCompanion(
+            customerId: Value(customerId),
+            synced: const Value(false),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
   Future<void> recordPayment({
     required int debtId,
     required double amount,
@@ -153,6 +193,53 @@ class LocalDebtRepository implements DebtRepository {
     if (debt.isFullyPaid) return;
 
     await recordPayment(debtId: debtId, amount: debt.remaining);
+  }
+
+  @override
+  Future<void> deleteDebt(int debtId) async {
+    final debt = await getDebt(debtId);
+    if (debt == null) {
+      throw const DebtException('Debt not found.');
+    }
+    if (debt.payments.isNotEmpty || debt.paidAmount > 0) {
+      throw const DebtException(
+        'Cannot delete this debt because it already has payment records.',
+      );
+    }
+
+    await _db.transaction(() async {
+      final saleId = debt.saleId;
+      final saleItems = saleId == null
+          ? const <SaleItem>[]
+          : await (_db.select(_db.saleItems)
+                ..where((item) => item.saleId.equals(saleId)))
+              .get();
+
+      for (final item in saleItems) {
+        final product =
+            await (_db.select(_db.products)..where((p) => p.id.equals(item.productId)))
+                .getSingleOrNull();
+        if (product != null) {
+          await (_db.update(_db.products)..where((p) => p.id.equals(product.id))).write(
+            ProductsCompanion(stockQty: Value(product.stockQty + item.qty)),
+          );
+        }
+      }
+
+      await enqueueSyncDelete(_db, entityTable: 'debts', localId: debtId);
+      await (_db.delete(_db.debts)..where((d) => d.id.equals(debtId))).go();
+
+      if (saleId != null) {
+        for (final item in saleItems) {
+          await enqueueSyncDelete(_db, entityTable: 'sale_items', localId: item.id);
+        }
+        await enqueueSyncDelete(_db, entityTable: 'sales', localId: saleId);
+
+        await (_db.delete(_db.saleItems)..where((item) => item.saleId.equals(saleId)))
+            .go();
+        await (_db.delete(_db.sales)..where((sale) => sale.id.equals(saleId))).go();
+      }
+    });
   }
 
   Future<DebtRecord> _mapDebtRow(TypedResult row) async {
