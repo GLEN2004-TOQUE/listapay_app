@@ -174,7 +174,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         'New installs include a bootstrap Admin PIN (1234) for '
                         'recovery. Cashier and Inventory Staff should register '
-                        'with a valid pairing code from the admin.',
+                        'with a valid pairing code from the admin. Admins can '
+                        'view the current code in Settings -> Cloud sync after '
+                        'the admin device is paired.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textSecondary,

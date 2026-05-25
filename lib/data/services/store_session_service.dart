@@ -22,6 +22,7 @@ class StoreSessionService {
   static const _storeIdKey = 'sync_store_id';
   static const _storeNameKey = 'sync_store_name';
   static const _deviceLabelKey = 'sync_device_label';
+  static const _pairingCodeKey = 'sync_pairing_code';
 
   final FlutterSecureStorage _storage;
 
@@ -41,6 +42,12 @@ class StoreSessionService {
   }
 
   Future<bool> isPaired() async => (await getSession()) != null;
+
+  Future<String?> getPairingCode() async {
+    final code = await _storage.read(key: _pairingCodeKey);
+    if (code == null || code.isEmpty) return null;
+    return code;
+  }
 
   Future<bool> hasSupabaseSession() async {
     return _client.auth.currentSession != null;
@@ -94,6 +101,7 @@ class StoreSessionService {
     await _storage.write(key: _storeIdKey, value: storeId);
     await _storage.write(key: _storeNameKey, value: storeName);
     await _storage.write(key: _deviceLabelKey, value: label);
+    await _storage.write(key: _pairingCodeKey, value: trimmed);
 
     await _client.auth.refreshSession();
 
@@ -108,6 +116,7 @@ class StoreSessionService {
     await _storage.delete(key: _storeIdKey);
     await _storage.delete(key: _storeNameKey);
     await _storage.delete(key: _deviceLabelKey);
+    await _storage.delete(key: _pairingCodeKey);
     await _client.auth.signOut();
   }
 

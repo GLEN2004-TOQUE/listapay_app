@@ -186,6 +186,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   context,
                 ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
               ),
+              const SizedBox(height: 8),
+              Text(
+                'Admins can find the current code in Settings -> Cloud sync after the admin device has been paired.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+              ),
               const SizedBox(height: 24),
               TextField(
                 controller: _nameController,

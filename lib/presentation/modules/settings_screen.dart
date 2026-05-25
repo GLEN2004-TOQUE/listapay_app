@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:listapay/core/config/supabase_config.dart';
 import 'package:listapay/core/router/app_router.dart';
 import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/data/services/connectivity_service.dart';
@@ -122,14 +123,17 @@ class SettingsScreen extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.cloud_sync_outlined),
                     title: const Text('Cloud sync'),
-                    subtitle: FutureBuilder<bool>(
-                      future: storeSession.isPaired(),
+                    subtitle: FutureBuilder<StoreSession?>(
+                      future: storeSession.getSession(),
                       builder: (context, snapshot) {
-                        final paired = snapshot.data ?? false;
+                        final session = snapshot.data;
+                        final subtitle = !SupabaseConfig.isConfigured
+                            ? 'Cloud sync disabled on this build'
+                            : session != null
+                            ? 'Paired with ${session.storeName}'
+                            : 'Not paired yet — tap to connect';
                         return Text(
-                          paired
-                              ? 'Paired — tap to sync or manage'
-                              : 'Not paired — tap to connect',
+                          subtitle,
                         );
                       },
                     ),

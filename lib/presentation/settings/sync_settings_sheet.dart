@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:listapay/core/config/supabase_config.dart';
 import 'package:listapay/core/security/device_binding_service.dart';
@@ -19,6 +20,7 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
   final _labelController = TextEditingController(text: 'POS Device');
   bool _busy = false;
   StoreSession? _session;
+  String? _pairingCode;
 
   @override
   void initState() {
@@ -27,8 +29,15 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
   }
 
   Future<void> _load() async {
-    final session = await context.read<StoreSessionService>().getSession();
-    if (mounted) setState(() => _session = session);
+    final service = context.read<StoreSessionService>();
+    final session = await service.getSession();
+    final pairingCode = await service.getPairingCode();
+    if (mounted) {
+      setState(() {
+        _session = session;
+        _pairingCode = pairingCode;
+      });
+    }
   }
 
   @override
@@ -56,7 +65,10 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
         deviceFingerprint: deviceId,
       );
       if (!mounted) return;
-      setState(() => _session = session);
+      setState(() {
+        _session = session;
+        _pairingCode = _codeController.text.trim().toUpperCase();
+      });
       final result = await syncService.syncNow();
       if (!mounted) return;
       if (result.skipped || result.message != null) {
@@ -119,6 +131,14 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
+  Future<void> _copyPairingCode() async {
+    final code = _pairingCode;
+    if (code == null || code.isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: code));
+    if (!mounted) return;
+    _showMessage('Pairing code copied.');
+  }
+
   @override
   Widget build(BuildContext context) {
     final configured = SupabaseConfig.isConfigured;
@@ -152,13 +172,16 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
             ),
             const SizedBox(height: 16),
             if (!configured)
-              const Card(
+              Card(
                 color: Color(0xFFFFF3E0),
                 child: Padding(
                   padding: EdgeInsets.all(12),
                   child: Text(
-                    'Supabase anon key not set. Run with:\n'
-                    'flutter run --dart-define=SUPABASE_ANON_KEY=your_key',
+                    'Cloud sync is not configured on this build yet.\n\n'
+                    'Use the Supabase-enabled run configuration first, then pair '
+                    'this admin device to the store. After a successful pair, the '
+                    'same pairing code will be shown here so you can share it with '
+                    'cashier and inventory staff.',
                   ),
                 ),
               ),
@@ -169,6 +192,54 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
                 title: Text(_session!.storeName),
                 subtitle: Text('Store ID: ${_session!.storeId}'),
               ),
+              if (_pairingCode != null) ...[
+                const SizedBox(height: 8),
+                Card(
+                  color: AppColors.surface,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Current pairing code',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Share this same code with Cashier and Inventory Staff when they register or pair their devices.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SelectableText(
+                                _pairingCode!,
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.2,
+                                    ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            OutlinedButton.icon(
+                              onPressed: _busy ? null : _copyPairingCode,
+                              icon: const Icon(Icons.copy_outlined),
+                              label: const Text('Copy'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               FilledButton.icon(
                 onPressed: _busy ? null : _syncNow,
@@ -187,11 +258,27 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
                 child: const Text('Disconnect'),
               ),
             ] else ...[
+              Card(
+                color: AppColors.surface,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    configured
+                        ? 'If you are the admin, enter the store pairing code once here. '
+                            'After this device is paired, the same code will appear in this screen for sharing with cashier and inventory staff.'
+                        : 'Pairing is unavailable until cloud sync is configured for this build.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               TextField(
                 controller: _codeController,
                 decoration: const InputDecoration(
                   labelText: 'Pairing code',
-                  hintText: '8-character code from Supabase',
+                  hintText: 'Enter the store pairing code',
                   border: OutlineInputBorder(),
                 ),
                 textCapitalization: TextCapitalization.characters,
