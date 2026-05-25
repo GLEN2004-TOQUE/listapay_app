@@ -5,6 +5,8 @@ import 'package:listapay/core/widgets/simple_loading.dart';
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
+  static const _splashLogoAsset = 'assets/images/new-listapay-logo.png';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -16,22 +18,18 @@ class SplashScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const BrandedLoadingIndicator(size: 124),
-                const SizedBox(height: 24),
-                Text(
-                  'ListaPay',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Image.asset(
+                  _splashLogoAsset,
+                  height: 180,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => const Icon(
+                    Icons.store_rounded,
+                    size: 96,
                     color: AppColors.primary,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Offline-first POS',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                const SizedBox(height: 24),
+                const BrandedLoadingIndicator(size: 88),
                 const SizedBox(height: 24),
                 Text(
                   'Preparing your store...',
