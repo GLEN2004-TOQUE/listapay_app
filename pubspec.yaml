@@ -50,9 +50,9 @@ flutter_launcher_icons:
   android: true
   ios: true
   remove_alpha_ios: true
-  image_path: assets/images/LISTAPAY-LOGO.png
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: assets/images/LISTAPAY-LOGO.png
+  image_path: assets/images/apply_icon.png
+  adaptive_icon_background: "#041A2D"
+  adaptive_icon_foreground: assets/images/apply_icon.png
 
 flutter_native_splash:
   color: "#FFFFFF"
