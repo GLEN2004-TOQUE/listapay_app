@@ -1,8 +1,10 @@
 import 'package:drift/drift.dart';
 import 'package:listapay/data/database/app_database.dart';
+import 'package:listapay/domain/entities/debt_line_item.dart';
 import 'package:listapay/domain/entities/debt_payment.dart';
 import 'package:listapay/domain/entities/debt_record.dart';
 import 'package:listapay/domain/entities/debt_status.dart';
+import 'package:listapay/domain/entities/payment_method.dart';
 import 'package:listapay/domain/repositories/debt_repository.dart';
 
 class LocalDebtRepository implements DebtRepository {
@@ -18,12 +20,11 @@ class LocalDebtRepository implements DebtRepository {
       DateTime.now().day,
     );
 
-    await (_db.update(_db.debts)
-          ..where(
-            (d) =>
-                d.status.equals('pending') &
-                d.dueDate.isSmallerThanValue(startOfToday),
-          ))
+    await (_db.update(_db.debts)..where(
+          (d) =>
+              d.status.equals('pending') &
+              d.dueDate.isSmallerThanValue(startOfToday),
+        ))
         .write(const DebtsCompanion(status: Value('overdue')));
   }
 
@@ -62,7 +63,9 @@ class LocalDebtRepository implements DebtRepository {
       }
       if (filter == DebtStatus.overdue) {
         return records
-            .where((d) => d.displayStatus == DebtStatus.overdue && !d.isFullyPaid)
+            .where(
+              (d) => d.displayStatus == DebtStatus.overdue && !d.isFullyPaid,
+            )
             .toList();
       }
       if (filter == DebtStatus.pending) {
@@ -113,7 +116,9 @@ class LocalDebtRepository implements DebtRepository {
     }
 
     await _db.transaction(() async {
-      await _db.into(_db.payments).insert(
+      await _db
+          .into(_db.payments)
+          .insert(
             PaymentsCompanion.insert(
               debtId: debtId,
               amount: amount,
@@ -124,10 +129,7 @@ class LocalDebtRepository implements DebtRepository {
       final newPaid = debt.paidAmount + amount;
       if (newPaid >= debt.amount - 0.001) {
         await (_db.update(_db.debts)..where((d) => d.id.equals(debtId))).write(
-          const DebtsCompanion(
-            status: Value('paid'),
-            synced: Value(false),
-          ),
+          const DebtsCompanion(status: Value('paid'), synced: Value(false)),
         );
       } else {
         await (_db.update(_db.debts)..where((d) => d.id.equals(debtId))).write(
@@ -157,10 +159,11 @@ class LocalDebtRepository implements DebtRepository {
     final debt = row.readTable(_db.debts);
     final customer = row.readTable(_db.customers);
 
-    final paymentRows = await (_db.select(_db.payments)
-          ..where((p) => p.debtId.equals(debt.id))
-          ..orderBy([(p) => OrderingTerm.desc(p.paidAt)]))
-        .get();
+    final paymentRows =
+        await (_db.select(_db.payments)
+              ..where((p) => p.debtId.equals(debt.id))
+              ..orderBy([(p) => OrderingTerm.desc(p.paidAt)]))
+            .get();
 
     final payments = paymentRows
         .map(
@@ -173,6 +176,10 @@ class LocalDebtRepository implements DebtRepository {
         )
         .toList();
 
+    final saleId = debt.saleId ?? await _findLinkedSaleId(debt);
+    final items = saleId == null
+        ? const <DebtLineItem>[]
+        : await _loadDebtItems(saleId);
     final paidAmount = payments.fold<double>(0, (sum, p) => sum + p.amount);
 
     return DebtRecord(
@@ -180,13 +187,65 @@ class LocalDebtRepository implements DebtRepository {
       customerId: customer.id,
       customerName: customer.name,
       customerPhone: customer.phone,
+      saleId: saleId,
       amount: debt.amount,
       paidAmount: paidAmount,
       dueDate: debt.dueDate,
       status: DebtStatus.fromValue(debt.status),
       createdAt: debt.createdAt,
+      items: items,
       payments: payments,
     );
+  }
+
+  Future<int?> _findLinkedSaleId(Debt debt) async {
+    final candidates =
+        await (_db.select(_db.sales)
+              ..where((s) => s.customerId.equals(debt.customerId))
+              ..where((s) => s.paymentMethod.equals(PaymentMethod.utang.value))
+              ..where(
+                (s) => s.total.isBetweenValues(
+                  debt.amount - 0.001,
+                  debt.amount + 0.001,
+                ),
+              )
+              ..orderBy([(s) => OrderingTerm.desc(s.createdAt)]))
+            .get();
+
+    if (candidates.isEmpty) return null;
+
+    final matchedSale = candidates.reduce((best, current) {
+      final bestDiff = best.createdAt.difference(debt.createdAt).abs();
+      final currentDiff = current.createdAt.difference(debt.createdAt).abs();
+      return currentDiff < bestDiff ? current : best;
+    });
+
+    return matchedSale.id;
+  }
+
+  Future<List<DebtLineItem>> _loadDebtItems(int saleId) async {
+    final rows =
+        await (_db.select(_db.saleItems).join([
+                innerJoin(
+                  _db.products,
+                  _db.products.id.equalsExp(_db.saleItems.productId),
+                ),
+              ])
+              ..where(_db.saleItems.saleId.equals(saleId))
+              ..orderBy([OrderingTerm.asc(_db.saleItems.id)]))
+            .get();
+
+    return rows.map((row) {
+      final item = row.readTable(_db.saleItems);
+      final product = row.readTable(_db.products);
+      return DebtLineItem(
+        productId: product.id,
+        productName: product.name,
+        qty: item.qty,
+        unitPrice: item.unitPrice,
+        subtotal: item.subtotal,
+      );
+    }).toList();
   }
 
   DateTime _startOfToday() {

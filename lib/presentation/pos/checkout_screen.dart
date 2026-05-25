@@ -50,8 +50,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
     setState(() => _loadingEwallet = true);
-    final config =
-        await context.read<PaymentConfigService>().getConfig(method);
+    final config = await context.read<PaymentConfigService>().getConfig(method);
     if (mounted) {
       setState(() {
         _ewalletConfig = config;
@@ -66,7 +65,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _loadCustomers() async {
-    final customers = await context.read<CustomerRepository>().getCustomerSummaries();
+    final customers = await context
+        .read<CustomerRepository>()
+        .getCustomerSummaries();
     if (mounted) {
       setState(() {
         _customers = customers;
@@ -78,6 +79,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<void> _quickAddCustomer() async {
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
+    final customerRepository = context.read<CustomerRepository>();
 
     final saved = await showDialog<bool>(
       context: context,
@@ -119,22 +121,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
     try {
-      final id = await context.read<CustomerRepository>().saveCustomer(
-            name: nameController.text,
-            phone: phoneController.text,
-          );
-      final customer = await context.read<CustomerRepository>().getCustomer(id);
-      if (customer == null) return;
+      final id = await customerRepository.saveCustomer(
+        name: nameController.text,
+        phone: phoneController.text,
+      );
+      final customer = await customerRepository.getCustomer(id);
+      if (!mounted || customer == null) return;
       setState(() {
         _customers = [..._customers, customer.summary];
         _selectedCustomer = customer.summary;
       });
     } on CustomerException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     }
 
     nameController.dispose();
@@ -168,17 +169,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (!mounted) return;
 
       await context.read<NotificationService>().notifyLowStock(
-            sale.lowStockProductNames,
-          );
+        sale.lowStockProductNames,
+      );
 
       cart.clear();
       await _showSuccessDialog(sale, receiptService);
       if (mounted) context.go(AppRoutes.pos);
     } on PosException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (_) {
       if (mounted) {
@@ -210,10 +211,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const SizedBox(height: 12),
               Text(
                 'Low stock: ${sale.lowStockProductNames.join(', ')}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.error,
-                ),
+                style: const TextStyle(fontSize: 12, color: AppColors.error),
               ),
             ],
           ],
@@ -282,7 +280,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                       Text(
                         formatPeso(cart.total),
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppColors.primary,
                             ),
@@ -294,9 +293,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const SizedBox(height: 16),
               Text(
                 'Payment method',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               ...PaymentMethod.values.map((method) {
@@ -331,8 +330,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     Text(
                       'Customer',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     TextButton(
                       onPressed: _quickAddCustomer,
@@ -350,13 +349,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 else
                   DropdownButtonFormField<CustomerSummary>(
                     initialValue: _selectedCustomer,
-                    decoration: const InputDecoration(labelText: 'Select customer'),
+                    decoration: const InputDecoration(
+                      labelText: 'Select customer',
+                    ),
                     items: _customers
                         .map(
                           (c) => DropdownMenuItem(
                             value: c,
                             child: Text(
-                              c.phone != null ? '${c.name} (${c.phone})' : c.name,
+                              c.phone != null
+                                  ? '${c.name} (${c.phone})'
+                                  : c.name,
                             ),
                           ),
                         )
@@ -381,7 +384,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ],
           ),
-          if (_isProcessing) const LoadingOverlay(message: 'Processing sale...'),
+          if (_isProcessing)
+            const LoadingOverlay(message: 'Processing sale...'),
         ],
       ),
     );

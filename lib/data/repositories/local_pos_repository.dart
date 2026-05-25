@@ -54,9 +54,9 @@ class LocalPosRepository implements PosRepository {
 
     final saleId = await _db.transaction(() async {
       for (final line in lines) {
-        final product = await (_db.select(_db.products)
-              ..where((p) => p.id.equals(line.productId)))
-            .getSingleOrNull();
+        final product = await (_db.select(
+          _db.products,
+        )..where((p) => p.id.equals(line.productId))).getSingleOrNull();
 
         if (product == null) {
           throw PosException('Product "${line.name}" no longer exists.');
@@ -68,7 +68,9 @@ class LocalPosRepository implements PosRepository {
         }
       }
 
-      final id = await _db.into(_db.sales).insert(
+      final id = await _db
+          .into(_db.sales)
+          .insert(
             SalesCompanion.insert(
               userId: userId,
               customerId: Value(customerId),
@@ -79,7 +81,9 @@ class LocalPosRepository implements PosRepository {
           );
 
       for (final line in lines) {
-        await _db.into(_db.saleItems).insert(
+        await _db
+            .into(_db.saleItems)
+            .insert(
               SaleItemsCompanion.insert(
                 saleId: id,
                 productId: line.productId,
@@ -89,12 +93,13 @@ class LocalPosRepository implements PosRepository {
               ),
             );
 
-        final product = await (_db.select(_db.products)
-              ..where((p) => p.id.equals(line.productId)))
-            .getSingle();
+        final product = await (_db.select(
+          _db.products,
+        )..where((p) => p.id.equals(line.productId))).getSingle();
 
         final newStock = product.stockQty - line.qty;
-        await (_db.update(_db.products)..where((p) => p.id.equals(line.productId)))
+        await (_db.update(_db.products)
+              ..where((p) => p.id.equals(line.productId)))
             .write(ProductsCompanion(stockQty: Value(newStock)));
 
         if (newStock <= product.lowStockThreshold) {
@@ -104,9 +109,12 @@ class LocalPosRepository implements PosRepository {
 
       if (paymentMethod == PaymentMethod.utang && customerId != null) {
         final due = debtDueDate ?? DateTime.now().add(const Duration(days: 30));
-        await _db.into(_db.debts).insert(
+        await _db
+            .into(_db.debts)
+            .insert(
               DebtsCompanion.insert(
                 customerId: customerId,
+                saleId: Value(id),
                 amount: total,
                 dueDate: due,
                 createdBy: userId,

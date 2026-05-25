@@ -24,7 +24,8 @@ class Products extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   TextColumn get barcode => text().nullable()();
-  IntColumn get categoryId => integer().nullable().references(Categories, #id)();
+  IntColumn get categoryId =>
+      integer().nullable().references(Categories, #id)();
   RealColumn get price => real()();
   RealColumn get cost => real().withDefault(const Constant(0))();
   IntColumn get stockQty => integer().withDefault(const Constant(0))();
@@ -64,6 +65,7 @@ class SaleItems extends Table {
 class Debts extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get customerId => integer().references(Customers, #id)();
+  IntColumn get saleId => integer().nullable().references(Sales, #id)();
   RealColumn get amount => real()();
   RealColumn get interestRate => real().withDefault(const Constant(0))();
   DateTimeColumn get dueDate => dateTime()();
@@ -109,36 +111,41 @@ class SyncMeta extends Table {
   Set<Column> get primaryKey => {key};
 }
 
-@DriftDatabase(tables: [
-  Users,
-  Categories,
-  Products,
-  Customers,
-  Sales,
-  SaleItems,
-  Debts,
-  Payments,
-  SyncQueue,
-  NotificationLog,
-  SyncMeta,
-])
+@DriftDatabase(
+  tables: [
+    Users,
+    Categories,
+    Products,
+    Customers,
+    Sales,
+    SaleItems,
+    Debts,
+    Payments,
+    SyncQueue,
+    NotificationLog,
+    SyncMeta,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          await m.createAll();
-        },
-        onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            await m.createTable(syncMeta);
-          }
-        },
-      );
+    onCreate: (m) async {
+      await m.createAll();
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(syncMeta);
+      }
+      if (from < 3) {
+        await m.addColumn(debts, debts.saleId);
+      }
+    },
+  );
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'listapay_db');

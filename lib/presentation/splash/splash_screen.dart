@@ -16,26 +16,23 @@ class SplashScreen extends StatelessWidget {
             Image.asset(
               'assets/images/LISTAPAY-LOGO.png',
               height: 120,
-              errorBuilder: (_, __, ___) => const Icon(
-                Icons.store,
-                size: 80,
-                color: AppColors.primary,
-              ),
+              errorBuilder: (_, _, _) =>
+                  const Icon(Icons.store, size: 80, color: AppColors.primary),
             ),
             const SizedBox(height: 12),
             Text(
               'ListaPay',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               'Offline-first POS',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
             ),
             const Spacer(),
             const SimpleLoading(message: 'Loading store...'),

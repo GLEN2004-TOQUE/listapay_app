@@ -80,11 +80,11 @@ class _ListaPayAppState extends State<ListaPayApp> {
     _connectivity = ConnectivityService();
     _smsService = SmsService();
     _debtSmsReminderService = DebtSmsReminderService(
-      db: _database,
-      debtRepository: _debtRepository,
-      connectivity: _connectivity,
-      smsService: _smsService,
-      notificationService: _notificationService,
+      _database,
+      _debtRepository,
+      _connectivity,
+      _smsService,
+      _notificationService,
     );
     _storeSessionService = StoreSessionService();
     _deviceBindingService = DeviceBindingService();
@@ -93,11 +93,7 @@ class _ListaPayAppState extends State<ListaPayApp> {
       storeSession: _storeSessionService,
       connectivity: _connectivity,
     );
-    _syncService = SyncService(
-      db: _database,
-      storeSession: _storeSessionService,
-      connectivity: _connectivity,
-    );
+    _syncService = SyncService(_database, _storeSessionService, _connectivity);
     _reportsService = ReportsService(_database);
     _paymentConfigService = PaymentConfigService(_database);
     _authCubit = AuthCubit(_authRepository);
@@ -129,7 +125,8 @@ class _ListaPayAppState extends State<ListaPayApp> {
           setState(() {
             _deviceBindingChecked = true;
             _deviceBindingBlocked = true;
-            _deviceBindingMessage = trackerResult.message ??
+            _deviceBindingMessage =
+                trackerResult.message ??
                 'This device has been blocked by an administrator.';
           });
         }

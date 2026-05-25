@@ -2607,6 +2607,15 @@ class $DebtsTable extends Debts with TableInfo<$DebtsTable, Debt> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _saleIdMeta = const VerificationMeta('saleId');
+  @override
+  late final GeneratedColumn<int> saleId = GeneratedColumn<int>(
+    'sale_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _amountMeta = const VerificationMeta('amount');
   @override
   late final GeneratedColumn<double> amount = GeneratedColumn<double>(
@@ -2689,6 +2698,7 @@ class $DebtsTable extends Debts with TableInfo<$DebtsTable, Debt> {
   List<GeneratedColumn> get $columns => [
     id,
     customerId,
+    saleId,
     amount,
     interestRate,
     dueDate,
@@ -2719,6 +2729,12 @@ class $DebtsTable extends Debts with TableInfo<$DebtsTable, Debt> {
       );
     } else if (isInserting) {
       context.missing(_customerIdMeta);
+    }
+    if (data.containsKey('sale_id')) {
+      context.handle(
+        _saleIdMeta,
+        saleId.isAcceptableOrUnknown(data['sale_id']!, _saleIdMeta),
+      );
     }
     if (data.containsKey('amount')) {
       context.handle(
@@ -2788,6 +2804,10 @@ class $DebtsTable extends Debts with TableInfo<$DebtsTable, Debt> {
         DriftSqlType.int,
         data['${effectivePrefix}customer_id'],
       )!,
+      saleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sale_id'],
+      ),
       amount: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}amount'],
@@ -2828,6 +2848,7 @@ class $DebtsTable extends Debts with TableInfo<$DebtsTable, Debt> {
 class Debt extends DataClass implements Insertable<Debt> {
   final int id;
   final int customerId;
+  final int? saleId;
   final double amount;
   final double interestRate;
   final DateTime dueDate;
@@ -2838,6 +2859,7 @@ class Debt extends DataClass implements Insertable<Debt> {
   const Debt({
     required this.id,
     required this.customerId,
+    this.saleId,
     required this.amount,
     required this.interestRate,
     required this.dueDate,
@@ -2851,6 +2873,9 @@ class Debt extends DataClass implements Insertable<Debt> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['customer_id'] = Variable<int>(customerId);
+    if (!nullToAbsent || saleId != null) {
+      map['sale_id'] = Variable<int>(saleId);
+    }
     map['amount'] = Variable<double>(amount);
     map['interest_rate'] = Variable<double>(interestRate);
     map['due_date'] = Variable<DateTime>(dueDate);
@@ -2865,6 +2890,9 @@ class Debt extends DataClass implements Insertable<Debt> {
     return DebtsCompanion(
       id: Value(id),
       customerId: Value(customerId),
+      saleId: saleId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(saleId),
       amount: Value(amount),
       interestRate: Value(interestRate),
       dueDate: Value(dueDate),
@@ -2883,6 +2911,7 @@ class Debt extends DataClass implements Insertable<Debt> {
     return Debt(
       id: serializer.fromJson<int>(json['id']),
       customerId: serializer.fromJson<int>(json['customerId']),
+      saleId: serializer.fromJson<int?>(json['saleId']),
       amount: serializer.fromJson<double>(json['amount']),
       interestRate: serializer.fromJson<double>(json['interestRate']),
       dueDate: serializer.fromJson<DateTime>(json['dueDate']),
@@ -2898,6 +2927,7 @@ class Debt extends DataClass implements Insertable<Debt> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'customerId': serializer.toJson<int>(customerId),
+      'saleId': serializer.toJson<int?>(saleId),
       'amount': serializer.toJson<double>(amount),
       'interestRate': serializer.toJson<double>(interestRate),
       'dueDate': serializer.toJson<DateTime>(dueDate),
@@ -2911,6 +2941,7 @@ class Debt extends DataClass implements Insertable<Debt> {
   Debt copyWith({
     int? id,
     int? customerId,
+    Value<int?> saleId = const Value.absent(),
     double? amount,
     double? interestRate,
     DateTime? dueDate,
@@ -2921,6 +2952,7 @@ class Debt extends DataClass implements Insertable<Debt> {
   }) => Debt(
     id: id ?? this.id,
     customerId: customerId ?? this.customerId,
+    saleId: saleId.present ? saleId.value : this.saleId,
     amount: amount ?? this.amount,
     interestRate: interestRate ?? this.interestRate,
     dueDate: dueDate ?? this.dueDate,
@@ -2935,6 +2967,7 @@ class Debt extends DataClass implements Insertable<Debt> {
       customerId: data.customerId.present
           ? data.customerId.value
           : this.customerId,
+      saleId: data.saleId.present ? data.saleId.value : this.saleId,
       amount: data.amount.present ? data.amount.value : this.amount,
       interestRate: data.interestRate.present
           ? data.interestRate.value
@@ -2952,6 +2985,7 @@ class Debt extends DataClass implements Insertable<Debt> {
     return (StringBuffer('Debt(')
           ..write('id: $id, ')
           ..write('customerId: $customerId, ')
+          ..write('saleId: $saleId, ')
           ..write('amount: $amount, ')
           ..write('interestRate: $interestRate, ')
           ..write('dueDate: $dueDate, ')
@@ -2967,6 +3001,7 @@ class Debt extends DataClass implements Insertable<Debt> {
   int get hashCode => Object.hash(
     id,
     customerId,
+    saleId,
     amount,
     interestRate,
     dueDate,
@@ -2981,6 +3016,7 @@ class Debt extends DataClass implements Insertable<Debt> {
       (other is Debt &&
           other.id == this.id &&
           other.customerId == this.customerId &&
+          other.saleId == this.saleId &&
           other.amount == this.amount &&
           other.interestRate == this.interestRate &&
           other.dueDate == this.dueDate &&
@@ -2993,6 +3029,7 @@ class Debt extends DataClass implements Insertable<Debt> {
 class DebtsCompanion extends UpdateCompanion<Debt> {
   final Value<int> id;
   final Value<int> customerId;
+  final Value<int?> saleId;
   final Value<double> amount;
   final Value<double> interestRate;
   final Value<DateTime> dueDate;
@@ -3003,6 +3040,7 @@ class DebtsCompanion extends UpdateCompanion<Debt> {
   const DebtsCompanion({
     this.id = const Value.absent(),
     this.customerId = const Value.absent(),
+    this.saleId = const Value.absent(),
     this.amount = const Value.absent(),
     this.interestRate = const Value.absent(),
     this.dueDate = const Value.absent(),
@@ -3014,6 +3052,7 @@ class DebtsCompanion extends UpdateCompanion<Debt> {
   DebtsCompanion.insert({
     this.id = const Value.absent(),
     required int customerId,
+    this.saleId = const Value.absent(),
     required double amount,
     this.interestRate = const Value.absent(),
     required DateTime dueDate,
@@ -3028,6 +3067,7 @@ class DebtsCompanion extends UpdateCompanion<Debt> {
   static Insertable<Debt> custom({
     Expression<int>? id,
     Expression<int>? customerId,
+    Expression<int>? saleId,
     Expression<double>? amount,
     Expression<double>? interestRate,
     Expression<DateTime>? dueDate,
@@ -3039,6 +3079,7 @@ class DebtsCompanion extends UpdateCompanion<Debt> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (customerId != null) 'customer_id': customerId,
+      if (saleId != null) 'sale_id': saleId,
       if (amount != null) 'amount': amount,
       if (interestRate != null) 'interest_rate': interestRate,
       if (dueDate != null) 'due_date': dueDate,
@@ -3052,6 +3093,7 @@ class DebtsCompanion extends UpdateCompanion<Debt> {
   DebtsCompanion copyWith({
     Value<int>? id,
     Value<int>? customerId,
+    Value<int?>? saleId,
     Value<double>? amount,
     Value<double>? interestRate,
     Value<DateTime>? dueDate,
@@ -3063,6 +3105,7 @@ class DebtsCompanion extends UpdateCompanion<Debt> {
     return DebtsCompanion(
       id: id ?? this.id,
       customerId: customerId ?? this.customerId,
+      saleId: saleId ?? this.saleId,
       amount: amount ?? this.amount,
       interestRate: interestRate ?? this.interestRate,
       dueDate: dueDate ?? this.dueDate,
@@ -3081,6 +3124,9 @@ class DebtsCompanion extends UpdateCompanion<Debt> {
     }
     if (customerId.present) {
       map['customer_id'] = Variable<int>(customerId.value);
+    }
+    if (saleId.present) {
+      map['sale_id'] = Variable<int>(saleId.value);
     }
     if (amount.present) {
       map['amount'] = Variable<double>(amount.value);
@@ -3111,6 +3157,7 @@ class DebtsCompanion extends UpdateCompanion<Debt> {
     return (StringBuffer('DebtsCompanion(')
           ..write('id: $id, ')
           ..write('customerId: $customerId, ')
+          ..write('saleId: $saleId, ')
           ..write('amount: $amount, ')
           ..write('interestRate: $interestRate, ')
           ..write('dueDate: $dueDate, ')
@@ -5895,6 +5942,7 @@ typedef $$DebtsTableCreateCompanionBuilder =
     DebtsCompanion Function({
       Value<int> id,
       required int customerId,
+      Value<int?> saleId,
       required double amount,
       Value<double> interestRate,
       required DateTime dueDate,
@@ -5907,6 +5955,7 @@ typedef $$DebtsTableUpdateCompanionBuilder =
     DebtsCompanion Function({
       Value<int> id,
       Value<int> customerId,
+      Value<int?> saleId,
       Value<double> amount,
       Value<double> interestRate,
       Value<DateTime> dueDate,
@@ -5931,6 +5980,11 @@ class $$DebtsTableFilterComposer extends Composer<_$AppDatabase, $DebtsTable> {
 
   ColumnFilters<int> get customerId => $composableBuilder(
     column: $table.customerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get saleId => $composableBuilder(
+    column: $table.saleId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5989,6 +6043,11 @@ class $$DebtsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get saleId => $composableBuilder(
+    column: $table.saleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get amount => $composableBuilder(
     column: $table.amount,
     builder: (column) => ColumnOrderings(column),
@@ -6041,6 +6100,9 @@ class $$DebtsTableAnnotationComposer
     column: $table.customerId,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get saleId =>
+      $composableBuilder(column: $table.saleId, builder: (column) => column);
 
   GeneratedColumn<double> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
@@ -6096,6 +6158,7 @@ class $$DebtsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<int> customerId = const Value.absent(),
+                Value<int?> saleId = const Value.absent(),
                 Value<double> amount = const Value.absent(),
                 Value<double> interestRate = const Value.absent(),
                 Value<DateTime> dueDate = const Value.absent(),
@@ -6106,6 +6169,7 @@ class $$DebtsTableTableManager
               }) => DebtsCompanion(
                 id: id,
                 customerId: customerId,
+                saleId: saleId,
                 amount: amount,
                 interestRate: interestRate,
                 dueDate: dueDate,
@@ -6118,6 +6182,7 @@ class $$DebtsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required int customerId,
+                Value<int?> saleId = const Value.absent(),
                 required double amount,
                 Value<double> interestRate = const Value.absent(),
                 required DateTime dueDate,
@@ -6128,6 +6193,7 @@ class $$DebtsTableTableManager
               }) => DebtsCompanion.insert(
                 id: id,
                 customerId: customerId,
+                saleId: saleId,
                 amount: amount,
                 interestRate: interestRate,
                 dueDate: dueDate,

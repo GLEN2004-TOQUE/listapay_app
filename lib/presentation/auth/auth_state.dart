@@ -12,17 +12,14 @@ class AuthState extends Equatable {
 
   const AuthState.unknown() : this(status: AuthStatus.unknown);
 
-  const AuthState.unauthenticated()
-      : this(status: AuthStatus.unauthenticated);
+  const AuthState.unauthenticated() : this(status: AuthStatus.unauthenticated);
 
-  AuthState.authenticated(
-    AppUser user, {
-    bool requiresPinChange = false,
-  }) : this(
-          status: AuthStatus.authenticated,
-          user: user,
-          requiresPinChange: requiresPinChange,
-        );
+  const AuthState.authenticated(AppUser user, {bool requiresPinChange = false})
+    : this(
+        status: AuthStatus.authenticated,
+        user: user,
+        requiresPinChange: requiresPinChange,
+      );
 
   final AuthStatus status;
   final AppUser? user;

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:listapay/domain/entities/debt_line_item.dart';
 import 'package:listapay/domain/entities/debt_payment.dart';
 import 'package:listapay/domain/entities/debt_status.dart';
 
@@ -8,11 +9,13 @@ class DebtRecord extends Equatable {
     required this.customerId,
     required this.customerName,
     this.customerPhone,
+    this.saleId,
     required this.amount,
     required this.paidAmount,
     required this.dueDate,
     required this.status,
     required this.createdAt,
+    this.items = const [],
     this.payments = const [],
   });
 
@@ -20,11 +23,13 @@ class DebtRecord extends Equatable {
   final int customerId;
   final String customerName;
   final String? customerPhone;
+  final int? saleId;
   final double amount;
   final double paidAmount;
   final DateTime dueDate;
   final DebtStatus status;
   final DateTime createdAt;
+  final List<DebtLineItem> items;
   final List<DebtPayment> payments;
 
   double get remaining => (amount - paidAmount).clamp(0, amount);
@@ -48,15 +53,17 @@ class DebtRecord extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        customerId,
-        customerName,
-        customerPhone,
-        amount,
-        paidAmount,
-        dueDate,
-        status,
-        createdAt,
-        payments,
-      ];
+    id,
+    customerId,
+    customerName,
+    customerPhone,
+    saleId,
+    amount,
+    paidAmount,
+    dueDate,
+    status,
+    createdAt,
+    items,
+    payments,
+  ];
 }

@@ -67,21 +67,21 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
         await context.read<DebtRepository>().markAsPaid(debt.id);
       } else {
         await context.read<DebtRepository>().recordPayment(
-              debtId: debt.id,
-              amount: amount,
-            );
+          debtId: debt.id,
+          amount: amount,
+        );
       }
       await _load();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Payment recorded.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Payment recorded.')));
       }
     } on DebtException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -91,6 +91,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMM d, yyyy');
+    final dateTimeFormat = DateFormat('MMM d, yyyy • h:mm a');
 
     return Scaffold(
       appBar: AppBar(
@@ -107,7 +108,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
           else if (_debt == null)
             const Center(child: Text('Debt not found'))
           else
-            _buildContent(context, _debt!, dateFormat),
+            _buildContent(context, _debt!, dateFormat, dateTimeFormat),
           if (_isProcessing) const LoadingOverlay(message: 'Processing...'),
         ],
       ),
@@ -118,6 +119,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     BuildContext context,
     DebtRecord debt,
     DateFormat dateFormat,
+    DateFormat dateTimeFormat,
   ) {
     final role = context.watch<AuthCubit>().state.user?.role;
     final canPay = role == UserRole.admin || role == UserRole.cashier;
@@ -139,9 +141,9 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
               children: [
                 Text(
                   debt.customerName,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 if (debt.customerPhone != null) ...[
                   const SizedBox(height: 4),
@@ -174,26 +176,52 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                     Text(
                       formatPeso(debt.remaining),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: statusColor,
-                          ),
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
+                Text('Created: ${dateTimeFormat.format(debt.createdAt)}'),
                 Text('Due: ${dateFormat.format(debt.dueDate)}'),
                 Text('Status: ${status.label}'),
               ],
             ),
           ),
         ),
+        const SizedBox(height: 20),
+        Text(
+          'Debt items',
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        if (debt.items.isEmpty)
+          const Text('No item details available for this debt.')
+        else
+          ...debt.items.map(
+            (item) => Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: const Icon(Icons.inventory_2_outlined),
+                title: Text(item.productName),
+                subtitle: Text('${item.qty} x ${formatPeso(item.unitPrice)}'),
+                trailing: Text(
+                  formatPeso(item.subtotal),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ),
         if (!debt.isFullyPaid && canPay) ...[
           const SizedBox(height: 16),
           Text(
             'Record payment',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -214,16 +242,18 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
           ),
           const SizedBox(height: 8),
           OutlinedButton(
-            onPressed: _isProcessing ? null : () => _recordPayment(fullAmount: true),
+            onPressed: _isProcessing
+                ? null
+                : () => _recordPayment(fullAmount: true),
             child: Text('Mark fully paid (${formatPeso(debt.remaining)})'),
           ),
         ],
         const SizedBox(height: 20),
         Text(
           'Payment history',
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         if (debt.payments.isEmpty)

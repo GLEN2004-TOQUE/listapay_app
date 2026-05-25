@@ -24,13 +24,7 @@ class SyncResult {
 
 /// Offline-first push/pull sync against Supabase (PIN auth stays local).
 class SyncService {
-  SyncService({
-    required AppDatabase db,
-    required StoreSessionService storeSession,
-    required ConnectivityService connectivity,
-  })  : _db = db,
-        _storeSession = storeSession,
-        _connectivity = connectivity;
+  SyncService(this._db, this._storeSession, this._connectivity);
 
   final AppDatabase _db;
   final StoreSessionService _storeSession;
@@ -53,8 +47,8 @@ class SyncService {
     await _storeSession.ensureSupabaseAuth();
     await _storeSession.restoreSessionIfNeeded();
 
-    final jwtStoreId =
-        _client.auth.currentSession?.user.appMetadata['store_id']?.toString();
+    final jwtStoreId = _client.auth.currentSession?.user.appMetadata['store_id']
+        ?.toString();
     if (jwtStoreId != session.storeId) {
       return const SyncResult(
         skipped: true,
@@ -86,9 +80,9 @@ class SyncService {
   }
 
   Future<int> _pushCategories(String storeId) async {
-    final rows = await (_db.select(_db.categories)
-          ..where((c) => c.syncedAt.isNull()))
-        .get();
+    final rows = await (_db.select(
+      _db.categories,
+    )..where((c) => c.syncedAt.isNull())).get();
     if (rows.isEmpty) return 0;
 
     final payload = rows
@@ -103,7 +97,9 @@ class SyncService {
         )
         .toList();
 
-    await _client.from('categories').upsert(payload, onConflict: 'store_id,local_id');
+    await _client
+        .from('categories')
+        .upsert(payload, onConflict: 'store_id,local_id');
 
     final ids = rows.map((r) => r.id).toList();
     await (_db.update(_db.categories)..where((c) => c.id.isIn(ids))).write(
@@ -113,9 +109,9 @@ class SyncService {
   }
 
   Future<int> _pushProducts(String storeId) async {
-    final rows = await (_db.select(_db.products)
-          ..where((p) => p.syncedAt.isNull()))
-        .get();
+    final rows = await (_db.select(
+      _db.products,
+    )..where((p) => p.syncedAt.isNull())).get();
     if (rows.isEmpty) return 0;
 
     final payload = rows
@@ -135,7 +131,9 @@ class SyncService {
         )
         .toList();
 
-    await _client.from('products').upsert(payload, onConflict: 'store_id,local_id');
+    await _client
+        .from('products')
+        .upsert(payload, onConflict: 'store_id,local_id');
 
     final ids = rows.map((r) => r.id).toList();
     await (_db.update(_db.products)..where((p) => p.id.isIn(ids))).write(
@@ -145,9 +143,9 @@ class SyncService {
   }
 
   Future<int> _pushCustomers(String storeId) async {
-    final rows = await (_db.select(_db.customers)
-          ..where((c) => c.syncedAt.isNull()))
-        .get();
+    final rows = await (_db.select(
+      _db.customers,
+    )..where((c) => c.syncedAt.isNull())).get();
     if (rows.isEmpty) return 0;
 
     final payload = rows
@@ -164,7 +162,9 @@ class SyncService {
         )
         .toList();
 
-    await _client.from('customers').upsert(payload, onConflict: 'store_id,local_id');
+    await _client
+        .from('customers')
+        .upsert(payload, onConflict: 'store_id,local_id');
 
     final ids = rows.map((r) => r.id).toList();
     await (_db.update(_db.customers)..where((c) => c.id.isIn(ids))).write(
@@ -174,50 +174,49 @@ class SyncService {
   }
 
   Future<int> _pushSales(String storeId) async {
-    final sales = await (_db.select(_db.sales)
-          ..where((s) => s.synced.equals(false)))
-        .get();
+    final sales = await (_db.select(
+      _db.sales,
+    )..where((s) => s.synced.equals(false))).get();
     if (sales.isEmpty) return 0;
 
     var count = 0;
     for (final sale in sales) {
-      final items = await (_db.select(_db.saleItems)
-            ..where((i) => i.saleId.equals(sale.id)))
-          .get();
+      final items = await (_db.select(
+        _db.saleItems,
+      )..where((i) => i.saleId.equals(sale.id))).get();
 
-      await _client.from('sales').upsert(
-        {
-          'store_id': storeId,
-          'local_id': sale.id,
-          'customer_local_id': sale.customerId,
-          'user_local_id': sale.userId,
-          'total': sale.total,
-          'payment_method': sale.paymentMethod,
-          'status': sale.status,
-          'created_at': sale.createdAt.toUtc().toIso8601String(),
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        onConflict: 'store_id,local_id',
-      );
+      await _client.from('sales').upsert({
+        'store_id': storeId,
+        'local_id': sale.id,
+        'customer_local_id': sale.customerId,
+        'user_local_id': sale.userId,
+        'total': sale.total,
+        'payment_method': sale.paymentMethod,
+        'status': sale.status,
+        'created_at': sale.createdAt.toUtc().toIso8601String(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }, onConflict: 'store_id,local_id');
 
       if (items.isNotEmpty) {
-        await _client.from('sale_items').upsert(
-          items
-              .map(
-                (i) => {
-                  'store_id': storeId,
-                  'local_id': i.id,
-                  'sale_local_id': i.saleId,
-                  'product_local_id': i.productId,
-                  'qty': i.qty,
-                  'unit_price': i.unitPrice,
-                  'subtotal': i.subtotal,
-                  'updated_at': DateTime.now().toUtc().toIso8601String(),
-                },
-              )
-              .toList(),
-          onConflict: 'store_id,local_id',
-        );
+        await _client
+            .from('sale_items')
+            .upsert(
+              items
+                  .map(
+                    (i) => {
+                      'store_id': storeId,
+                      'local_id': i.id,
+                      'sale_local_id': i.saleId,
+                      'product_local_id': i.productId,
+                      'qty': i.qty,
+                      'unit_price': i.unitPrice,
+                      'subtotal': i.subtotal,
+                      'updated_at': DateTime.now().toUtc().toIso8601String(),
+                    },
+                  )
+                  .toList(),
+              onConflict: 'store_id,local_id',
+            );
       }
 
       await (_db.update(_db.sales)..where((s) => s.id.equals(sale.id))).write(
@@ -229,30 +228,32 @@ class SyncService {
   }
 
   Future<int> _pushDebts(String storeId) async {
-    final rows = await (_db.select(_db.debts)
-          ..where((d) => d.synced.equals(false)))
-        .get();
+    final rows = await (_db.select(
+      _db.debts,
+    )..where((d) => d.synced.equals(false))).get();
     if (rows.isEmpty) return 0;
 
-    await _client.from('debts').upsert(
-      rows
-          .map(
-            (r) => {
-              'store_id': storeId,
-              'local_id': r.id,
-              'customer_local_id': r.customerId,
-              'amount': r.amount,
-              'interest_rate': r.interestRate,
-              'due_date': r.dueDate.toUtc().toIso8601String(),
-              'status': r.status,
-              'created_by_local_id': r.createdBy,
-              'created_at': r.createdAt.toUtc().toIso8601String(),
-              'updated_at': DateTime.now().toUtc().toIso8601String(),
-            },
-          )
-          .toList(),
-      onConflict: 'store_id,local_id',
-    );
+    await _client
+        .from('debts')
+        .upsert(
+          rows
+              .map(
+                (r) => {
+                  'store_id': storeId,
+                  'local_id': r.id,
+                  'customer_local_id': r.customerId,
+                  'amount': r.amount,
+                  'interest_rate': r.interestRate,
+                  'due_date': r.dueDate.toUtc().toIso8601String(),
+                  'status': r.status,
+                  'created_by_local_id': r.createdBy,
+                  'created_at': r.createdAt.toUtc().toIso8601String(),
+                  'updated_at': DateTime.now().toUtc().toIso8601String(),
+                },
+              )
+              .toList(),
+          onConflict: 'store_id,local_id',
+        );
 
     final ids = rows.map((r) => r.id).toList();
     await (_db.update(_db.debts)..where((d) => d.id.isIn(ids))).write(
@@ -262,26 +263,28 @@ class SyncService {
   }
 
   Future<int> _pushPayments(String storeId) async {
-    final rows = await (_db.select(_db.payments)
-          ..where((p) => p.synced.equals(false)))
-        .get();
+    final rows = await (_db.select(
+      _db.payments,
+    )..where((p) => p.synced.equals(false))).get();
     if (rows.isEmpty) return 0;
 
-    await _client.from('payments').upsert(
-      rows
-          .map(
-            (r) => {
-              'store_id': storeId,
-              'local_id': r.id,
-              'debt_local_id': r.debtId,
-              'amount': r.amount,
-              'paid_at': r.paidAt.toUtc().toIso8601String(),
-              'updated_at': DateTime.now().toUtc().toIso8601String(),
-            },
-          )
-          .toList(),
-      onConflict: 'store_id,local_id',
-    );
+    await _client
+        .from('payments')
+        .upsert(
+          rows
+              .map(
+                (r) => {
+                  'store_id': storeId,
+                  'local_id': r.id,
+                  'debt_local_id': r.debtId,
+                  'amount': r.amount,
+                  'paid_at': r.paidAt.toUtc().toIso8601String(),
+                  'updated_at': DateTime.now().toUtc().toIso8601String(),
+                },
+              )
+              .toList(),
+          onConflict: 'store_id,local_id',
+        );
 
     final ids = rows.map((r) => r.id).toList();
     await (_db.update(_db.payments)..where((p) => p.id.isIn(ids))).write(
@@ -291,10 +294,11 @@ class SyncService {
   }
 
   Future<int> _processDeleteQueue(String storeId) async {
-    final rows = await (_db.select(_db.syncQueue)
-          ..where((q) => q.operation.equals('delete'))
-          ..where((q) => q.entityTable.isNotIn(['sms', 'notification'])))
-        .get();
+    final rows =
+        await (_db.select(_db.syncQueue)
+              ..where((q) => q.operation.equals('delete'))
+              ..where((q) => q.entityTable.isNotIn(['sms', 'notification'])))
+            .get();
 
     var count = 0;
     for (final row in rows) {
@@ -304,10 +308,14 @@ class SyncService {
       final localId = int.tryParse(row.recordId);
       if (localId == null) continue;
 
-      await _client.from(table).update({
-        'deleted_at': DateTime.now().toUtc().toIso8601String(),
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }).eq('store_id', storeId).eq('local_id', localId);
+      await _client
+          .from(table)
+          .update({
+            'deleted_at': DateTime.now().toUtc().toIso8601String(),
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('store_id', storeId)
+          .eq('local_id', localId);
 
       await (_db.delete(_db.syncQueue)..where((q) => q.id.equals(row.id))).go();
       count++;
@@ -385,15 +393,17 @@ class SyncService {
   }
 
   Future<DateTime?> _readLastPull() async {
-    final row = await (_db.select(_db.syncMeta)
-          ..where((m) => m.key.equals(_lastPullKey)))
-        .getSingleOrNull();
+    final row = await (_db.select(
+      _db.syncMeta,
+    )..where((m) => m.key.equals(_lastPullKey))).getSingleOrNull();
     if (row?.value == null) return null;
     return DateTime.tryParse(row!.value!);
   }
 
   Future<void> _writeLastPull(DateTime at) async {
-    await _db.into(_db.syncMeta).insertOnConflictUpdate(
+    await _db
+        .into(_db.syncMeta)
+        .insertOnConflictUpdate(
           SyncMetaCompanion.insert(
             key: _lastPullKey,
             value: Value(at.toIso8601String()),
@@ -404,14 +414,16 @@ class SyncService {
   Future<void> _applyCategory(Map<String, dynamic> row) async {
     if (row['deleted_at'] != null) {
       final localId = row['local_id'] as int;
-      await (_db.delete(_db.categories)..where((c) => c.id.equals(localId))).go();
+      await (_db.delete(
+        _db.categories,
+      )..where((c) => c.id.equals(localId))).go();
       return;
     }
 
     final localId = row['local_id'] as int;
-    final existing = await (_db.select(_db.categories)
-          ..where((c) => c.id.equals(localId)))
-        .getSingleOrNull();
+    final existing = await (_db.select(
+      _db.categories,
+    )..where((c) => c.id.equals(localId))).getSingleOrNull();
 
     final companion = CategoriesCompanion(
       id: Value(localId),
@@ -423,8 +435,9 @@ class SyncService {
     if (existing == null) {
       await _db.into(_db.categories).insert(companion);
     } else {
-      await (_db.update(_db.categories)..where((c) => c.id.equals(localId)))
-          .write(companion);
+      await (_db.update(
+        _db.categories,
+      )..where((c) => c.id.equals(localId))).write(companion);
     }
   }
 
@@ -436,9 +449,9 @@ class SyncService {
     }
 
     final localId = row['local_id'] as int;
-    final existing = await (_db.select(_db.products)
-          ..where((p) => p.id.equals(localId)))
-        .getSingleOrNull();
+    final existing = await (_db.select(
+      _db.products,
+    )..where((p) => p.id.equals(localId))).getSingleOrNull();
 
     final companion = ProductsCompanion(
       id: Value(localId),
@@ -455,22 +468,25 @@ class SyncService {
     if (existing == null) {
       await _db.into(_db.products).insert(companion);
     } else {
-      await (_db.update(_db.products)..where((p) => p.id.equals(localId)))
-          .write(companion);
+      await (_db.update(
+        _db.products,
+      )..where((p) => p.id.equals(localId))).write(companion);
     }
   }
 
   Future<void> _applyCustomer(Map<String, dynamic> row) async {
     if (row['deleted_at'] != null) {
       final localId = row['local_id'] as int;
-      await (_db.delete(_db.customers)..where((c) => c.id.equals(localId))).go();
+      await (_db.delete(
+        _db.customers,
+      )..where((c) => c.id.equals(localId))).go();
       return;
     }
 
     final localId = row['local_id'] as int;
-    final existing = await (_db.select(_db.customers)
-          ..where((c) => c.id.equals(localId)))
-        .getSingleOrNull();
+    final existing = await (_db.select(
+      _db.customers,
+    )..where((c) => c.id.equals(localId))).getSingleOrNull();
 
     final companion = CustomersCompanion(
       id: Value(localId),
@@ -484,8 +500,9 @@ class SyncService {
     if (existing == null) {
       await _db.into(_db.customers).insert(companion);
     } else {
-      await (_db.update(_db.customers)..where((c) => c.id.equals(localId)))
-          .write(companion);
+      await (_db.update(
+        _db.customers,
+      )..where((c) => c.id.equals(localId))).write(companion);
     }
   }
 
@@ -497,9 +514,9 @@ class SyncService {
     }
 
     final localId = row['local_id'] as int;
-    final existing = await (_db.select(_db.debts)
-          ..where((d) => d.id.equals(localId)))
-        .getSingleOrNull();
+    final existing = await (_db.select(
+      _db.debts,
+    )..where((d) => d.id.equals(localId))).getSingleOrNull();
 
     final companion = DebtsCompanion(
       id: Value(localId),
@@ -516,8 +533,9 @@ class SyncService {
     if (existing == null) {
       await _db.into(_db.debts).insert(companion);
     } else {
-      await (_db.update(_db.debts)..where((d) => d.id.equals(localId)))
-          .write(companion);
+      await (_db.update(
+        _db.debts,
+      )..where((d) => d.id.equals(localId))).write(companion);
     }
   }
 
@@ -529,9 +547,9 @@ class SyncService {
     }
 
     final localId = row['local_id'] as int;
-    final existing = await (_db.select(_db.payments)
-          ..where((p) => p.id.equals(localId)))
-        .getSingleOrNull();
+    final existing = await (_db.select(
+      _db.payments,
+    )..where((p) => p.id.equals(localId))).getSingleOrNull();
 
     final companion = PaymentsCompanion(
       id: Value(localId),
@@ -544,8 +562,9 @@ class SyncService {
     if (existing == null) {
       await _db.into(_db.payments).insert(companion);
     } else {
-      await (_db.update(_db.payments)..where((p) => p.id.equals(localId)))
-          .write(companion);
+      await (_db.update(
+        _db.payments,
+      )..where((p) => p.id.equals(localId))).write(companion);
     }
   }
 }

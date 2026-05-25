@@ -34,9 +34,9 @@ class _LoginScreenState extends State<LoginScreen> {
     return BlocConsumer<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state.errorMessage != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.errorMessage!)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
         }
       },
       builder: (context, state) {
@@ -55,7 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Image.asset(
                         'assets/images/LISTAPAY-LOGO.png',
                         height: 72,
-                        errorBuilder: (_, __, ___) => const Icon(
+                        errorBuilder: (_, _, _) => const Icon(
                           Icons.store,
                           size: 56,
                           color: AppColors.primary,
@@ -64,16 +64,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 24),
                       Text(
                         'Sign in',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Enter your PIN to open the store.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: 32),
                       TextField(
@@ -81,16 +80,21 @@ class _LoginScreenState extends State<LoginScreen> {
                         obscureText: _obscure,
                         keyboardType: TextInputType.number,
                         maxLength: 6,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         enabled: !isLoading,
                         decoration: InputDecoration(
                           labelText: 'PIN',
                           counterText: '',
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscure ? Icons.visibility_off : Icons.visibility,
+                              _obscure
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                             ),
-                            onPressed: () => setState(() => _obscure = !_obscure),
+                            onPressed: () =>
+                                setState(() => _obscure = !_obscure),
                           ),
                         ),
                         onSubmitted: (_) => _submit(),
@@ -105,8 +109,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         'After first install you must set a new ${PinPolicy.minLength}-digit PIN.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
