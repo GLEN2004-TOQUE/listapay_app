@@ -55,9 +55,9 @@ flutter_launcher_icons:
   adaptive_icon_foreground: assets/images/apply_icon.png
 
 flutter_native_splash:
-  color: "#FFFFFF"
+  color: "#F6F8F7"
   android_12:
-    color: "#FFFFFF"
+    color: "#F6F8F7"
 
 flutter:
   uses-material-design: true

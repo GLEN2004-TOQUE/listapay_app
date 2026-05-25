@@ -84,9 +84,7 @@ GoRouter createAppRouter(AuthCubit authCubit) {
           if (!voluntary) return AppRoutes.home;
         }
 
-        if (user != null &&
-            !user.isAdmin &&
-            _isAdminOnlyRoute(path)) {
+        if (user != null && !user.isAdmin && _isAdminOnlyRoute(path)) {
           return AppRoutes.home;
         }
 
@@ -100,23 +98,29 @@ GoRouter createAppRouter(AuthCubit authCubit) {
     routes: [
       GoRoute(
         path: AppRoutes.splash,
-        builder: (context, state) => const SplashScreen(),
+        pageBuilder: (context, state) =>
+            _buildFadePage(state: state, child: const SplashScreen()),
       ),
       GoRoute(
         path: AppRoutes.login,
-        builder: (context, state) => const LoginScreen(),
+        pageBuilder: (context, state) =>
+            _buildFadePage(state: state, child: const LoginScreen()),
       ),
       GoRoute(
         path: AppRoutes.changePin,
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final auth = context.read<AuthCubit>().state;
           final forced = auth.requiresPinChange;
-          return ChangePinScreen(forced: forced);
+          return _buildFadePage(
+            state: state,
+            child: ChangePinScreen(forced: forced),
+          );
         },
       ),
       GoRoute(
         path: AppRoutes.home,
-        builder: (context, state) => const HomeScreen(),
+        pageBuilder: (context, state) =>
+            _buildFadePage(state: state, child: const HomeScreen()),
       ),
       ShellRoute(
         builder: (context, state, child) => PosShell(child: child),
@@ -205,6 +209,26 @@ GoRouter createAppRouter(AuthCubit authCubit) {
         builder: (context, state) => const SettingsScreen(),
       ),
     ],
+  );
+}
+
+CustomTransitionPage<void> _buildFadePage({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 280),
+    reverseTransitionDuration: const Duration(milliseconds: 220),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+      return FadeTransition(opacity: curved, child: child);
+    },
   );
 }
 

@@ -212,7 +212,7 @@ class LoadingOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: Colors.white.withValues(alpha: 0.85),
+      color: AppColors.surface.withValues(alpha: 0.9),
       child: SimpleLoading(message: message),
     );
   }

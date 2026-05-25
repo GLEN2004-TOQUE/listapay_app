@@ -34,7 +34,9 @@ import 'package:listapay/presentation/auth/auth_cubit.dart';
 import 'package:listapay/presentation/splash/splash_screen.dart';
 
 class ListaPayApp extends StatefulWidget {
-  const ListaPayApp({super.key});
+  const ListaPayApp({super.key, required this.platformInitialization});
+
+  final Future<void> platformInitialization;
 
   @override
   State<ListaPayApp> createState() => _ListaPayAppState();
@@ -62,6 +64,7 @@ class _ListaPayAppState extends State<ListaPayApp> {
   late final GoRouter _router;
   StreamSubscription<AuthState>? _authSubscription;
   bool _debtCheckRan = false;
+  bool _bootstrapStarted = false;
   bool _deviceBindingChecked = false;
   bool _deviceBindingBlocked = false;
   String? _deviceBindingMessage;
@@ -99,10 +102,23 @@ class _ListaPayAppState extends State<ListaPayApp> {
     _authCubit = AuthCubit(_authRepository);
     _router = createAppRouter(_authCubit);
     _notificationService.onNavigate = _router.go;
-    _bootstrap();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_bootstrap());
+      }
+    });
   }
 
   Future<void> _bootstrap() async {
+    if (_bootstrapStarted) return;
+    _bootstrapStarted = true;
+
+    final localInitialization = Future.wait<void>([
+      _authRepository.initialize(),
+      _inventoryRepository.initialize(),
+      widget.platformInitialization,
+    ]);
+
     final binding = await _deviceBindingService.verifyOrBind();
     if (!binding.isAllowed) {
       if (mounted) {
@@ -117,6 +133,8 @@ class _ListaPayAppState extends State<ListaPayApp> {
       }
       return;
     }
+
+    await localInitialization;
 
     if (DeviceTrackerConfig.isConfigured) {
       final trackerResult = await _deviceTrackerService.registerDevice();
@@ -135,9 +153,6 @@ class _ListaPayAppState extends State<ListaPayApp> {
 
       _deviceTrackerService.startConnectivityListener();
     }
-
-    await _authRepository.initialize();
-    await _inventoryRepository.initialize();
     _authSubscription = _authCubit.stream.listen((state) async {
       if (state.status == AuthStatus.authenticated) {
         if (DeviceTrackerConfig.isConfigured) {
@@ -185,6 +200,28 @@ class _ListaPayAppState extends State<ListaPayApp> {
 
   @override
   Widget build(BuildContext context) {
+    final rootChild = _buildRootApp();
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 320),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) =>
+          FadeTransition(opacity: animation, child: child),
+      child: KeyedSubtree(
+        key: ValueKey<String>(
+          _deviceBindingBlocked
+              ? 'blocked'
+              : _deviceBindingChecked
+              ? 'ready'
+              : 'boot',
+        ),
+        child: rootChild,
+      ),
+    );
+  }
+
+  Widget _buildRootApp() {
     if (_deviceBindingBlocked) {
       return MaterialApp(
         title: 'ListaPay',
