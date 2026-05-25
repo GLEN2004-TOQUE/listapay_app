@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:listapay/core/config/device_tracker_config.dart';
 import 'package:listapay/core/config/supabase_config.dart';
 import 'package:listapay/core/router/app_router.dart';
 import 'package:listapay/core/security/device_binding_service.dart';
@@ -16,6 +17,7 @@ import 'package:listapay/data/repositories/local_inventory_repository.dart';
 import 'package:listapay/data/repositories/local_pos_repository.dart';
 import 'package:listapay/data/services/connectivity_service.dart';
 import 'package:listapay/data/services/debt_sms_reminder_service.dart';
+import 'package:listapay/data/services/device_tracker_service.dart';
 import 'package:listapay/data/services/notification_service.dart';
 import 'package:listapay/data/services/payment_config_service.dart';
 import 'package:listapay/data/services/receipt_service.dart';
@@ -51,6 +53,7 @@ class _ListaPayAppState extends State<ListaPayApp> {
   late final DebtSmsReminderService _debtSmsReminderService;
   late final StoreSessionService _storeSessionService;
   late final DeviceBindingService _deviceBindingService;
+  late final DeviceTrackerService _deviceTrackerService;
   late final SyncService _syncService;
   late final ReportsService _reportsService;
   late final PaymentConfigService _paymentConfigService;
@@ -85,6 +88,11 @@ class _ListaPayAppState extends State<ListaPayApp> {
     );
     _storeSessionService = StoreSessionService();
     _deviceBindingService = DeviceBindingService();
+    _deviceTrackerService = DeviceTrackerService(
+      deviceBinding: _deviceBindingService,
+      storeSession: _storeSessionService,
+      connectivity: _connectivity,
+    );
     _syncService = SyncService(
       db: _database,
       storeSession: _storeSessionService,
@@ -114,12 +122,38 @@ class _ListaPayAppState extends State<ListaPayApp> {
       return;
     }
 
+    if (DeviceTrackerConfig.isConfigured) {
+      final trackerResult = await _deviceTrackerService.registerDevice();
+      if (trackerResult.blocked) {
+        if (mounted) {
+          setState(() {
+            _deviceBindingChecked = true;
+            _deviceBindingBlocked = true;
+            _deviceBindingMessage = trackerResult.message ??
+                'This device has been blocked by an administrator.';
+          });
+        }
+        return;
+      }
+
+      _deviceTrackerService.startConnectivityListener();
+    }
+
     await _authRepository.initialize();
     await _inventoryRepository.initialize();
     _authSubscription = _authCubit.stream.listen((state) async {
-      if (state.status == AuthStatus.authenticated && !_debtCheckRan) {
-        _debtCheckRan = true;
-        await _runDebtAndSmsChecks();
+      if (state.status == AuthStatus.authenticated) {
+        if (DeviceTrackerConfig.isConfigured) {
+          unawaited(
+            _deviceTrackerService.registerDevice(
+              userId: state.user?.id.toString(),
+            ),
+          );
+        }
+        if (!_debtCheckRan) {
+          _debtCheckRan = true;
+          await _runDebtAndSmsChecks();
+        }
       }
       if (state.status == AuthStatus.unauthenticated) {
         _debtCheckRan = false;
@@ -146,6 +180,7 @@ class _ListaPayAppState extends State<ListaPayApp> {
   @override
   void dispose() {
     _authSubscription?.cancel();
+    _deviceTrackerService.dispose();
     _authCubit.close();
     _database.close();
     super.dispose();
