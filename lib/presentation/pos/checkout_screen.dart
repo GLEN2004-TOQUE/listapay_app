@@ -503,15 +503,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     if (amount == null || !mounted) return;
 
+    if (sheetContext.mounted) {
+      Navigator.of(sheetContext).pop();
+    }
+
     setState(() => _isProcessing = true);
     try {
       await context.read<DebtRepository>().recordCustomerPayment(
         customerId: customer.id,
         amount: amount,
       );
-      if (sheetContext.mounted) {
-        Navigator.pop(sheetContext);
-      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
