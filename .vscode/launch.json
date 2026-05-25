@@ -2,12 +2,14 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "listapay (Supabase)",
+      "name": "listapay (Supabase + Device Tracker)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
       "toolArgs": [
-        "--dart-define=SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4eHZwaWNraWZvYmR5andtZnB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NTk3NDUsImV4cCI6MjA5NTEzNTc0NX0.YJW4uPJmNihrxyO-y4G9qONTl-889CAn6BrLGrXahWE"
+        "--no-enable-impeller",
+        "--dart-define=SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4eHZwaWNraWZvYmR5andtZnB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NTk3NDUsImV4cCI6MjA5NTEzNTc0NX0.YJW4uPJmNihrxyO-y4G9qONTl-889CAn6BrLGrXahWE",
+        "--dart-define=DEVICE_TRACKER_URL=http://192.168.1.58:3000"
       ]
     }
   ]
