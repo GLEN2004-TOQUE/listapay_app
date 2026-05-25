@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:listapay/core/router/app_router.dart';
@@ -28,6 +29,87 @@ class DebtScreen extends StatelessWidget {
 
 class _DebtView extends StatelessWidget {
   const _DebtView();
+
+  Future<void> _collectWholeTabPayment(
+    BuildContext context,
+    _CustomerDebtGroup group,
+  ) async {
+    final repository = context.read<DebtRepository>();
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = TextEditingController(
+      text: group.totalRemaining.toStringAsFixed(2),
+    );
+    controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: controller.text.length,
+    );
+
+    final amount = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Pay whole tab'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Total tab: ${formatPeso(group.totalRemaining)}'),
+            const SizedBox(height: 12),
+            const Text(
+              'Payment will be applied to the oldest unpaid utang first.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Amount',
+                prefixText: '₱ ',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final amount = double.tryParse(controller.text);
+              Navigator.pop(dialogContext, amount);
+            },
+            child: const Text('Record payment'),
+          ),
+        ],
+      ),
+    );
+
+    controller.dispose();
+
+    if (!context.mounted || amount == null) return;
+
+    try {
+      await repository.recordCustomerPayment(
+        customerId: group.customerId,
+        amount: amount,
+      );
+      if (!context.mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Payment recorded and applied to ${group.customerName}\'s oldest unpaid debts.',
+          ),
+        ),
+      );
+    } on DebtException catch (e) {
+      if (!context.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,6 +168,9 @@ class _DebtView extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context, DebtListState state) {
+    final role = context.watch<AuthCubit>().state.user?.role;
+    final canPay = role == UserRole.admin || role == UserRole.cashier;
+
     if (state.isLoading && state.debts.isEmpty) {
       return const SimpleLoading(message: 'Loading debts...');
     }
@@ -107,7 +192,11 @@ class _DebtView extends StatelessWidget {
         itemCount: groupedDebts.length,
         itemBuilder: (context, index) {
           final group = groupedDebts[index];
-          return _CustomerDebtGroupCard(group: group);
+          return _CustomerDebtGroupCard(
+            group: group,
+            canPay: canPay,
+            onPayTab: () => _collectWholeTabPayment(context, group),
+          );
         },
       );
     }
@@ -174,9 +263,15 @@ class _CustomerDebtGroup {
 }
 
 class _CustomerDebtGroupCard extends StatelessWidget {
-  const _CustomerDebtGroupCard({required this.group});
+  const _CustomerDebtGroupCard({
+    required this.group,
+    required this.canPay,
+    required this.onPayTab,
+  });
 
   final _CustomerDebtGroup group;
+  final bool canPay;
+  final VoidCallback onPayTab;
 
   Future<void> _exportCustomerTab(
     BuildContext context, {
@@ -211,81 +306,9 @@ class _CustomerDebtGroupCard extends StatelessWidget {
     }
   }
 
-  Future<void> _collectWholeTabPayment(BuildContext context) async {
-    final controller = TextEditingController(
-      text: group.totalRemaining.toStringAsFixed(2),
-    );
-
-    final amount = await showDialog<double>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Pay whole tab'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Total tab: ${formatPeso(group.totalRemaining)}'),
-            const SizedBox(height: 12),
-            const Text(
-              'Payment will be applied to the oldest unpaid utang first.',
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Amount',
-                prefixText: '₱ ',
-              ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final amount = double.tryParse(controller.text);
-              Navigator.pop(dialogContext, amount);
-            },
-            child: const Text('Record payment'),
-          ),
-        ],
-      ),
-    );
-
-    controller.dispose();
-
-    if (!context.mounted || amount == null) return;
-
-    try {
-      await context.read<DebtRepository>().recordCustomerPayment(
-        customerId: group.customerId,
-        amount: amount,
-      );
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Payment recorded and applied to ${group.customerName}\'s oldest unpaid debts.',
-          ),
-        ),
-      );
-    } on DebtException catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final latestFormat = DateFormat('MMM d, yyyy • h:mm a');
-    final role = context.watch<AuthCubit>().state.user?.role;
-    final canPay = role == UserRole.admin || role == UserRole.cashier;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -357,7 +380,7 @@ class _CustomerDebtGroupCard extends StatelessWidget {
               ),
               if (canPay)
                 FilledButton.icon(
-                  onPressed: () => _collectWholeTabPayment(context),
+                  onPressed: onPayTab,
                   icon: const Icon(Icons.payments_outlined),
                   label: const Text('Pay tab'),
                 ),

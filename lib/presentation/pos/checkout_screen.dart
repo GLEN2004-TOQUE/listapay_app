@@ -314,10 +314,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<void> _collectWholeTabPayment({
     required CustomerSummary customer,
     required List<DebtRecord> debts,
-    required BuildContext sheetContext,
   }) async {
+    final repository = context.read<DebtRepository>();
+    final messenger = ScaffoldMessenger.of(context);
     final controller = TextEditingController(
       text: _customerBalance(debts).toStringAsFixed(2),
+    );
+    controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: controller.text.length,
     );
 
     final amount = await showDialog<double>(
@@ -336,6 +341,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: controller,
+              autofocus: true,
               decoration: const InputDecoration(
                 labelText: 'Amount',
                 prefixText: '₱ ',
@@ -367,18 +373,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     if (amount == null || !mounted) return;
 
-    if (sheetContext.mounted) {
-      Navigator.of(sheetContext).pop();
-    }
+    Navigator.of(context).pop();
 
     setState(() => _isProcessing = true);
     try {
-      await context.read<DebtRepository>().recordCustomerPayment(
+      await repository.recordCustomerPayment(
         customerId: customer.id,
         amount: amount,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               'Payment recorded and applied to ${customer.name}\'s oldest unpaid debts.',
@@ -388,9 +392,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
     } on DebtException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
+        messenger.showSnackBar(SnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -502,7 +504,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           : () => _collectWholeTabPayment(
                                 customer: customer,
                                 debts: debts,
-                                sheetContext: sheetContext,
                               ),
                       icon: const Icon(Icons.payments_outlined),
                       label: const Text('Pay tab'),
