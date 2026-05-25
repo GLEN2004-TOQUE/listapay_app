@@ -2,15 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/core/utils/currency_format.dart';
+import 'package:listapay/core/utils/ph_time.dart';
 import 'package:listapay/domain/entities/debt_record.dart';
 import 'package:listapay/domain/entities/debt_status.dart';
 
 class DebtTile extends StatelessWidget {
-  const DebtTile({
-    super.key,
-    required this.debt,
-    required this.onTap,
-  });
+  const DebtTile({super.key, required this.debt, required this.onTap});
 
   final DebtRecord debt;
   final VoidCallback onTap;
@@ -33,7 +30,7 @@ class DebtTile extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
-          'Due ${DateFormat('MMM d, yyyy').format(debt.dueDate)}',
+          'Due ${PhTime.format(DateFormat('MMM d, yyyy'), debt.dueDate)}',
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -41,10 +38,7 @@ class DebtTile extends StatelessWidget {
           children: [
             Text(
               formatPeso(debt.isFullyPaid ? debt.amount : debt.remaining),
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: statusColor,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, color: statusColor),
             ),
             const SizedBox(height: 4),
             Container(

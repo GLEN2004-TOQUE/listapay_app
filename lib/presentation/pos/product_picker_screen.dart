@@ -75,17 +75,22 @@ class _ProductPickerViewState extends State<_ProductPickerView> {
                   itemCount: state.products.length,
                   itemBuilder: (context, index) {
                     final product = state.products[index];
-                    final outOfStock = product.stockQty <= 0;
+                    final outOfStock = product.isOutOfStock;
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
                         title: Text(product.name),
                         subtitle: Text(
-                          '${formatPeso(product.price)} · Stock: ${product.stockQty}',
+                          outOfStock
+                              ? '${formatPeso(product.price)} · Out of stock'
+                              : '${formatPeso(product.price)} · Stock: ${product.stockQty}',
                         ),
                         trailing: outOfStock
-                            ? const Text('Out', style: TextStyle(color: Colors.red))
+                            ? const Text(
+                                'Out',
+                                style: TextStyle(color: Colors.red),
+                              )
                             : const Icon(Icons.add),
                         enabled: !outOfStock,
                         onTap: outOfStock

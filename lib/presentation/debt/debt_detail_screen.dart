@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/core/utils/currency_format.dart';
+import 'package:listapay/core/utils/ph_time.dart';
 import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/data/services/receipt_service.dart';
 import 'package:listapay/domain/entities/customer_summary.dart';
@@ -175,11 +176,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
 
     var selectedCustomer =
         _findCustomerSummary(customers, debt.customerId) ?? customers.first;
-    var selectedDueDate = DateTime(
-      debt.dueDate.year,
-      debt.dueDate.month,
-      debt.dueDate.day,
-    );
+    DateTime selectedDueDate = PhTime.startOfDay(debt.dueDate);
     final dateFormat = DateFormat('MMM d, yyyy');
 
     final saved = await showDialog<bool>(
@@ -190,16 +187,12 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
             final picked = await showDatePicker(
               context: dialogContext,
               initialDate: selectedDueDate,
-              firstDate: DateTime.now().subtract(const Duration(days: 3650)),
-              lastDate: DateTime.now().add(const Duration(days: 3650)),
+              firstDate: PhTime.today().subtract(const Duration(days: 3650)),
+              lastDate: PhTime.today().add(const Duration(days: 3650)),
             );
             if (picked != null) {
               setDialogState(() {
-                selectedDueDate = DateTime(
-                  picked.year,
-                  picked.month,
-                  picked.day,
-                );
+                selectedDueDate = PhTime.startOfDay(picked);
               });
             }
           }
@@ -233,7 +226,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Due date'),
-                  subtitle: Text(dateFormat.format(selectedDueDate)),
+                  subtitle: Text(PhTime.format(dateFormat, selectedDueDate)),
                   trailing: const Icon(Icons.calendar_today),
                   onTap: pickDueDate,
                 ),
@@ -435,8 +428,10 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text('Created: ${dateTimeFormat.format(debt.createdAt)}'),
-                Text('Due: ${dateFormat.format(debt.dueDate)}'),
+                Text(
+                  'Created: ${PhTime.format(dateTimeFormat, debt.createdAt)}',
+                ),
+                Text('Due: ${PhTime.format(dateFormat, debt.dueDate)}'),
                 Text('Status: ${status.label}'),
               ],
             ),
@@ -546,7 +541,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
                 title: Text(formatPeso(p.amount)),
-                subtitle: Text(dateFormat.format(p.paidAt)),
+                subtitle: Text(PhTime.format(dateTimeFormat, p.paidAt)),
                 leading: const Icon(Icons.payments_outlined),
               ),
             ),

@@ -1,12 +1,13 @@
 import 'package:intl/intl.dart';
 import 'package:listapay/core/utils/currency_format.dart';
+import 'package:listapay/core/utils/ph_time.dart';
 
 String buildDueSoonSms({
   required String customerName,
   required double amount,
   required DateTime dueDate,
 }) {
-  final due = DateFormat('MMM d, yyyy').format(dueDate);
+  final due = PhTime.format(DateFormat('MMM d, yyyy'), dueDate);
   return 'Hi $customerName, mayroon kayong utang na ${formatPeso(amount)} '
       'na dapat bayaran bago ang $due. Salamat! — ListaPay';
 }

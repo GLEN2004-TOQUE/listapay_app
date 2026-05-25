@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:listapay/domain/entities/debt_line_item.dart';
 import 'package:listapay/domain/entities/debt_payment.dart';
 import 'package:listapay/domain/entities/debt_status.dart';
+import 'package:listapay/core/utils/ph_time.dart';
 
 class DebtRecord extends Equatable {
   const DebtRecord({
@@ -38,16 +39,15 @@ class DebtRecord extends Equatable {
 
   DebtStatus get displayStatus {
     if (isFullyPaid) return DebtStatus.paid;
-    final today = DateTime.now();
-    final dueDay = DateTime(dueDate.year, dueDate.month, dueDate.day);
-    final nowDay = DateTime(today.year, today.month, today.day);
+    final dueDay = PhTime.startOfDay(dueDate);
+    final nowDay = PhTime.today();
     if (nowDay.isAfter(dueDay)) return DebtStatus.overdue;
     return DebtStatus.pending;
   }
 
   bool get isDueSoon {
     if (isFullyPaid) return false;
-    final days = dueDate.difference(DateTime.now()).inDays;
+    final days = PhTime.startOfDay(dueDate).difference(PhTime.today()).inDays;
     return days >= 0 && days <= 3;
   }
 

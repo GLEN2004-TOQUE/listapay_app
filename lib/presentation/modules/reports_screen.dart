@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/core/utils/currency_format.dart';
+import 'package:listapay/core/utils/ph_time.dart';
 import 'package:listapay/core/widgets/empty_state.dart';
 import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/data/services/reports_service.dart';
@@ -292,7 +293,7 @@ class _PurchasesTab extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            dateFormat.format(purchase.createdAt),
+                            PhTime.format(dateFormat, purchase.createdAt),
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: AppColors.textSecondary),
                           ),

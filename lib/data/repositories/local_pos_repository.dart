@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:listapay/core/utils/ph_time.dart';
 import 'package:listapay/data/database/app_database.dart';
 import 'package:listapay/domain/entities/cart_line.dart';
 import 'package:listapay/domain/entities/completed_sale.dart';
@@ -129,7 +130,9 @@ class LocalPosRepository implements PosRepository {
       }
 
       if (paymentMethod == PaymentMethod.utang && customerId != null) {
-        final due = debtDueDate ?? DateTime.now().add(const Duration(days: 30));
+        final due = debtDueDate == null
+            ? PhTime.today().add(const Duration(days: 30))
+            : PhTime.startOfDay(debtDueDate);
         await _db
             .into(_db.debts)
             .insert(
@@ -154,7 +157,7 @@ class LocalPosRepository implements PosRepository {
       changeAmount: changeAmount,
       paymentMethod: paymentMethod,
       lines: lines,
-      createdAt: DateTime.now(),
+      createdAt: PhTime.now(),
       customerName: customerName,
       lowStockProductNames: lowStockNames.toSet().toList(),
     );
