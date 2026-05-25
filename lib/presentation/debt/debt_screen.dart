@@ -5,6 +5,7 @@ import 'package:listapay/core/router/app_router.dart';
 import 'package:listapay/core/utils/currency_format.dart';
 import 'package:listapay/core/widgets/empty_state.dart';
 import 'package:listapay/core/widgets/simple_loading.dart';
+import 'package:listapay/data/services/receipt_service.dart';
 import 'package:listapay/domain/entities/debt_record.dart';
 import 'package:listapay/domain/repositories/debt_repository.dart';
 import 'package:listapay/presentation/debt/debt_list_cubit.dart';
@@ -175,6 +176,39 @@ class _CustomerDebtGroupCard extends StatelessWidget {
 
   final _CustomerDebtGroup group;
 
+  Future<void> _exportCustomerTab(
+    BuildContext context, {
+    required bool print,
+  }) async {
+    final receiptService = context.read<ReceiptService>();
+    try {
+      if (print) {
+        await receiptService.printCustomerDebtStatement(
+          customerName: group.customerName,
+          customerPhone: group.customerPhone,
+          debts: group.debts,
+        );
+      } else {
+        await receiptService.shareCustomerDebtStatement(
+          customerName: group.customerName,
+          customerPhone: group.customerPhone,
+          debts: group.debts,
+        );
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            print
+                ? 'Could not open the print dialog.'
+                : 'Could not generate the PDF file.',
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final latestFormat = DateFormat('MMM d, yyyy • h:mm a');
@@ -230,6 +264,23 @@ class _CustomerDebtGroupCard extends StatelessWidget {
             children: [
               const Text('Items on tab'),
               Text('${group.totalItems}'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () => _exportCustomerTab(context, print: true),
+                icon: const Icon(Icons.print_outlined),
+                label: const Text('Print tab'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _exportCustomerTab(context, print: false),
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('Download PDF'),
+              ),
             ],
           ),
           const SizedBox(height: 14),

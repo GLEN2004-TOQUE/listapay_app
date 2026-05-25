@@ -273,6 +273,43 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return debts.fold<double>(0, (sum, debt) => sum + debt.remaining);
   }
 
+  Future<void> _exportCustomerTab({
+    required CustomerSummary customer,
+    required List<DebtRecord> debts,
+    required bool print,
+  }) async {
+    final receiptService = context.read<ReceiptService>();
+    setState(() => _isProcessing = true);
+    try {
+      if (print) {
+        await receiptService.printCustomerDebtStatement(
+          customerName: customer.name,
+          customerPhone: customer.phone,
+          debts: debts,
+        );
+      } else {
+        await receiptService.shareCustomerDebtStatement(
+          customerName: customer.name,
+          customerPhone: customer.phone,
+          debts: debts,
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            print
+                ? 'Could not open the print dialog.'
+                : 'Could not generate the PDF file.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
   Future<void> _showCustomerTabSheet({
     required CustomerSummary customer,
     required List<DebtRecord> debts,
@@ -344,6 +381,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ],
                     ),
                   ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _isProcessing
+                          ? null
+                          : () => _exportCustomerTab(
+                                customer: customer,
+                                debts: debts,
+                                print: true,
+                              ),
+                      icon: const Icon(Icons.print_outlined),
+                      label: const Text('Print tab'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _isProcessing
+                          ? null
+                          : () => _exportCustomerTab(
+                                customer: customer,
+                                debts: debts,
+                                print: false,
+                              ),
+                      icon: const Icon(Icons.picture_as_pdf_outlined),
+                      label: const Text('Download PDF'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 Text(
