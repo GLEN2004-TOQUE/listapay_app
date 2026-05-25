@@ -250,143 +250,161 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (picked != null) setState(() => _dueDate = picked);
   }
 
+  void _handleBackNavigation() {
+    if (_isProcessing || !mounted) return;
+
+    final router = GoRouter.of(context);
+    if (router.canPop()) {
+      router.pop();
+    } else {
+      router.go(AppRoutes.pos);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartCubit>().state;
     final dateFormat = DateFormat('MMM d, yyyy');
+    final canPop = GoRouter.of(context).canPop();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Checkout'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _isProcessing ? null : () => context.pop(),
+    return PopScope<void>(
+      canPop: !_isProcessing && canPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _handleBackNavigation();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Checkout'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _isProcessing ? null : _handleBackNavigation,
+          ),
         ),
-      ),
-      body: Stack(
-        children: [
-          ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
+        body: Stack(
+          children: [
+            ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Total',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Text(
+                          formatPeso(cart.total),
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Payment method',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                ...PaymentMethod.values.map((method) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: PaymentMethodTile(
+                      method: method,
+                      selected: _paymentMethod == method,
+                      enabled: !_isProcessing,
+                      onTap: () => _selectPaymentMethod(method),
+                    ),
+                  );
+                }),
+                if (_paymentMethod.showsEwalletDetails) ...[
+                  const SizedBox(height: 12),
+                  if (_loadingEwallet)
+                    const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else
+                    PaymentQrPanel(
+                      method: _paymentMethod,
+                      config: _ewalletConfig ?? const EwalletPaymentConfig(),
+                    ),
+                ],
+                if (_paymentMethod.requiresCustomer) ...[
+                  const SizedBox(height: 20),
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Total',
-                        style: Theme.of(context).textTheme.titleMedium,
+                        'Customer',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      Text(
-                        formatPeso(cart.total),
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
+                      TextButton(
+                        onPressed: _quickAddCustomer,
+                        child: const Text('+ Add'),
                       ),
                     ],
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Payment method',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              ...PaymentMethod.values.map((method) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: PaymentMethodTile(
-                    method: method,
-                    selected: _paymentMethod == method,
-                    enabled: !_isProcessing,
-                    onTap: () => _selectPaymentMethod(method),
-                  ),
-                );
-              }),
-              if (_paymentMethod.showsEwalletDetails) ...[
-                const SizedBox(height: 12),
-                if (_loadingEwallet)
-                  const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else
-                  PaymentQrPanel(
-                    method: _paymentMethod,
-                    config: _ewalletConfig ?? const EwalletPaymentConfig(),
-                  ),
-              ],
-              if (_paymentMethod.requiresCustomer) ...[
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Customer',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                  if (_loadingCustomers)
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: SimpleLoading(message: 'Loading customers...'),
+                    )
+                  else if (_customers.isEmpty)
+                    const Text('No customers yet. Add one to continue.')
+                  else
+                    DropdownButtonFormField<CustomerSummary>(
+                      initialValue: _selectedCustomer,
+                      decoration: const InputDecoration(
+                        labelText: 'Select customer',
                       ),
-                    ),
-                    TextButton(
-                      onPressed: _quickAddCustomer,
-                      child: const Text('+ Add'),
-                    ),
-                  ],
-                ),
-                if (_loadingCustomers)
-                  const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: SimpleLoading(message: 'Loading customers...'),
-                  )
-                else if (_customers.isEmpty)
-                  const Text('No customers yet. Add one to continue.')
-                else
-                  DropdownButtonFormField<CustomerSummary>(
-                    initialValue: _selectedCustomer,
-                    decoration: const InputDecoration(
-                      labelText: 'Select customer',
-                    ),
-                    items: _customers
-                        .map(
-                          (c) => DropdownMenuItem(
-                            value: c,
-                            child: Text(
-                              c.phone != null
-                                  ? '${c.name} (${c.phone})'
-                                  : c.name,
+                      items: _customers
+                          .map(
+                            (c) => DropdownMenuItem(
+                              value: c,
+                              child: Text(
+                                c.phone != null
+                                    ? '${c.name} (${c.phone})'
+                                    : c.name,
+                              ),
                             ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: _isProcessing
-                        ? null
-                        : (v) => setState(() => _selectedCustomer = v),
+                          )
+                          .toList(),
+                      onChanged: _isProcessing
+                          ? null
+                          : (v) => setState(() => _selectedCustomer = v),
+                    ),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Due date'),
+                    subtitle: Text(dateFormat.format(_dueDate)),
+                    trailing: const Icon(Icons.calendar_today),
+                    onTap: _isProcessing ? null : _pickDueDate,
                   ),
-                const SizedBox(height: 8),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Due date'),
-                  subtitle: Text(dateFormat.format(_dueDate)),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap: _isProcessing ? null : _pickDueDate,
+                ],
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _isProcessing ? null : _confirmSale,
+                  child: const Text('Confirm sale'),
                 ),
               ],
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isProcessing ? null : _confirmSale,
-                child: const Text('Confirm sale'),
-              ),
-            ],
-          ),
-          if (_isProcessing)
-            const LoadingOverlay(message: 'Processing sale...'),
-        ],
+            ),
+            if (_isProcessing)
+              const LoadingOverlay(message: 'Processing sale...'),
+          ],
+        ),
       ),
     );
   }
