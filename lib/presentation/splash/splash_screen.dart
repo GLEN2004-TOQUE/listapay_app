@@ -5,7 +5,7 @@ import 'package:listapay/core/widgets/simple_loading.dart';
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
-  static const _splashLogoAsset = 'assets/images/new-listapay-logo.png';
+  static const _splashLogoAsset = 'assets/images/LISTAPAY-LOGO.png';
 
   @override
   Widget build(BuildContext context) {
