@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:listapay/core/theme/app_theme.dart';
+import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/data/services/payment_config_service.dart';
 import 'package:listapay/domain/entities/ewallet_payment_config.dart';
 import 'package:listapay/domain/entities/payment_method.dart';
@@ -64,9 +65,9 @@ class _PaymentSettingsSheetState extends State<PaymentSettingsSheet> {
       );
       await _load();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Payment details saved.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Payment details saved.')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -85,9 +86,9 @@ class _PaymentSettingsSheetState extends State<PaymentSettingsSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not upload QR: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not upload QR: $e')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -112,8 +113,8 @@ class _PaymentSettingsSheetState extends State<PaymentSettingsSheet> {
       padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
       child: _loading
           ? const SizedBox(
-              height: 200,
-              child: Center(child: CircularProgressIndicator()),
+              height: 220,
+              child: SimpleLoading(message: 'Loading payment settings...'),
             )
           : SingleChildScrollView(
               child: Column(
@@ -125,9 +126,8 @@ class _PaymentSettingsSheetState extends State<PaymentSettingsSheet> {
                       Expanded(
                         child: Text(
                           'Payment methods',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
                       IconButton(
@@ -140,8 +140,8 @@ class _PaymentSettingsSheetState extends State<PaymentSettingsSheet> {
                     'Set your GCash and Maya account numbers and QR codes. '
                     'Cashiers will see them at checkout when those methods are selected.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   _EwalletSection(
@@ -201,9 +201,9 @@ class _EwalletSection extends StatelessWidget {
           children: [
             Text(
               '${method.label} payment',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -238,14 +238,16 @@ class _EwalletSection extends StatelessWidget {
                 height: 120,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: AppColors.textSecondary.withValues(alpha: 0.3),
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   'No QR uploaded',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
             const SizedBox(height: 12),
@@ -263,7 +265,10 @@ class _EwalletSection extends StatelessWidget {
                   IconButton(
                     onPressed: busy ? null : onRemoveQr,
                     tooltip: 'Remove QR',
-                    icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: AppColors.error,
+                    ),
                   ),
                 ],
               ],

@@ -8,11 +8,7 @@ import 'package:listapay/domain/entities/payment_method.dart';
 
 /// Shows GCash/Maya account number and QR for the customer to scan at checkout.
 class PaymentQrPanel extends StatelessWidget {
-  const PaymentQrPanel({
-    super.key,
-    required this.method,
-    required this.config,
-  });
+  const PaymentQrPanel({super.key, required this.method, required this.config});
 
   final PaymentMethod method;
   final EwalletPaymentConfig config;
@@ -56,24 +52,24 @@ class PaymentQrPanel extends StatelessWidget {
           children: [
             Text(
               'Pay via ${method.label}',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
             Text(
               'Show this to the customer before confirming the sale.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
             if (hasAccount) ...[
               const SizedBox(height: 16),
               Text(
                 'Account number',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 6),
               Row(
@@ -82,9 +78,9 @@ class PaymentQrPanel extends StatelessWidget {
                     child: SelectableText(
                       account,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -105,8 +101,8 @@ class PaymentQrPanel extends StatelessWidget {
               Text(
                 'Scan to pay',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 8),
               Center(
@@ -119,7 +115,7 @@ class PaymentQrPanel extends StatelessWidget {
                       File(config.qrImagePath!),
                       height: 220,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Padding(
+                      errorBuilder: (_, _, _) => const Padding(
                         padding: EdgeInsets.all(24),
                         child: Text('QR image could not be loaded.'),
                       ),

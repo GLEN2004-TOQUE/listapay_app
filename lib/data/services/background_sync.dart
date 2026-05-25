@@ -18,9 +18,7 @@ Future<void> registerBackgroundSync() async {
     listapayBackgroundSyncTask,
     listapayBackgroundSyncTask,
     frequency: const Duration(hours: 1),
-    constraints: Constraints(
-      networkType: NetworkType.connected,
-    ),
+    constraints: Constraints(networkType: NetworkType.connected),
     existingWorkPolicy: ExistingWorkPolicy.keep,
   );
 }
@@ -42,14 +40,10 @@ void callbackDispatcher() {
     }
 
     final db = AppDatabase();
-  try {
+    try {
       final storeSession = StoreSessionService();
       final connectivity = ConnectivityService();
-      final sync = SyncService(
-        db: db,
-        storeSession: storeSession,
-        connectivity: connectivity,
-      );
+      final sync = SyncService(db, storeSession, connectivity);
       await storeSession.restoreSessionIfNeeded();
       final result = await sync.syncNow();
       return result.ok || result.skipped;

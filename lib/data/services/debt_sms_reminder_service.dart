@@ -24,17 +24,13 @@ class DebtSmsReminderResult {
 }
 
 class DebtSmsReminderService {
-  DebtSmsReminderService({
-    required AppDatabase db,
-    required DebtRepository debtRepository,
-    required ConnectivityService connectivity,
-    required SmsService smsService,
-    required NotificationService notificationService,
-  })  : _db = db,
-        _debtRepository = debtRepository,
-        _connectivity = connectivity,
-        _smsService = smsService,
-        _notificationService = notificationService;
+  DebtSmsReminderService(
+    this._db,
+    this._debtRepository,
+    this._connectivity,
+    this._smsService,
+    this._notificationService,
+  );
 
   final AppDatabase _db;
   final DebtRepository _debtRepository;
@@ -63,7 +59,8 @@ class DebtSmsReminderService {
     final targets = await _findSmsTargets();
 
     for (final target in targets) {
-      if (target.phone == null || normalizePhilippinePhone(target.phone) == null) {
+      if (target.phone == null ||
+          normalizePhilippinePhone(target.phone) == null) {
         skipped++;
         continue;
       }
@@ -115,13 +112,15 @@ class DebtSmsReminderService {
       return const DebtSmsReminderResult();
     }
 
-    final pending = await (_db.select(_db.syncQueue)
-          ..where(
-            (q) =>
-                q.entityTable.equals('sms') & q.retries.isSmallerThanValue(_maxRetries),
-          )
-          ..orderBy([(q) => OrderingTerm.asc(q.createdAt)]))
-        .get();
+    final pending =
+        await (_db.select(_db.syncQueue)
+              ..where(
+                (q) =>
+                    q.entityTable.equals('sms') &
+                    q.retries.isSmallerThanValue(_maxRetries),
+              )
+              ..orderBy([(q) => OrderingTerm.asc(q.createdAt)]))
+            .get();
 
     var sent = 0;
     var failed = 0;
@@ -139,7 +138,9 @@ class DebtSmsReminderService {
       );
 
       if (result.success) {
-        await (_db.delete(_db.syncQueue)..where((q) => q.id.equals(item.id))).go();
+        await (_db.delete(
+          _db.syncQueue,
+        )..where((q) => q.id.equals(item.id))).go();
         await _logSms(
           debtId: debtId,
           smsType: smsType,
@@ -150,15 +151,16 @@ class DebtSmsReminderService {
       } else {
         final newRetries = item.retries + 1;
         if (newRetries >= _maxRetries) {
-          await (_db.delete(_db.syncQueue)..where((q) => q.id.equals(item.id))).go();
+          await (_db.delete(
+            _db.syncQueue,
+          )..where((q) => q.id.equals(item.id))).go();
           await _notificationService.notifySmsFailure(
             customerName: payload['customerName'] as String? ?? 'Customer',
           );
           failed++;
         } else {
-          await (_db.update(_db.syncQueue)..where((q) => q.id.equals(item.id))).write(
-            SyncQueueCompanion(retries: Value(newRetries)),
-          );
+          await (_db.update(_db.syncQueue)..where((q) => q.id.equals(item.id)))
+              .write(SyncQueueCompanion(retries: Value(newRetries)));
           failed++;
         }
       }
@@ -186,9 +188,9 @@ class DebtSmsReminderService {
       final debt = row.readTable(_db.debts);
       final customer = row.readTable(_db.customers);
 
-      final payments = await (_db.select(_db.payments)
-            ..where((p) => p.debtId.equals(debt.id)))
-          .get();
+      final payments = await (_db.select(
+        _db.payments,
+      )..where((p) => p.debtId.equals(debt.id))).get();
       final paid = payments.fold<double>(0, (s, p) => s + p.amount);
       final remaining = debt.amount - paid;
       if (remaining <= 0.001) continue;
@@ -233,15 +235,17 @@ class DebtSmsReminderService {
   }
 
   Future<bool> _wasSentRecently(int debtId, String smsType) async {
-    final since = DateTime.now().subtract(const Duration(hours: _cooldownHours));
-    final existing = await (_db.select(_db.notificationLog)
-          ..where(
-            (n) =>
-                n.type.equals(smsType) &
-                n.refId.equals(debtId.toString()) &
-                n.sentAt.isBiggerOrEqualValue(since),
-          ))
-        .get();
+    final since = DateTime.now().subtract(
+      const Duration(hours: _cooldownHours),
+    );
+    final existing =
+        await (_db.select(_db.notificationLog)..where(
+              (n) =>
+                  n.type.equals(smsType) &
+                  n.refId.equals(debtId.toString()) &
+                  n.sentAt.isBiggerOrEqualValue(since),
+            ))
+            .get();
     return existing.isNotEmpty;
   }
 
@@ -251,7 +255,9 @@ class DebtSmsReminderService {
     required String message,
     required String phone,
   }) async {
-    await _db.into(_db.notificationLog).insert(
+    await _db
+        .into(_db.notificationLog)
+        .insert(
           NotificationLogCompanion.insert(
             type: smsType,
             refId: Value(debtId.toString()),
@@ -268,14 +274,14 @@ class DebtSmsReminderService {
     required String smsType,
     String? customerName,
   }) async {
-    final existing = await (_db.select(_db.syncQueue)
-          ..where(
-            (q) =>
-                q.entityTable.equals('sms') &
-                q.recordId.equals(debtId.toString()) &
-                q.operation.equals('send'),
-          ))
-        .getSingleOrNull();
+    final existing =
+        await (_db.select(_db.syncQueue)..where(
+              (q) =>
+                  q.entityTable.equals('sms') &
+                  q.recordId.equals(debtId.toString()) &
+                  q.operation.equals('send'),
+            ))
+            .getSingleOrNull();
 
     final payload = jsonEncode({
       'phone': phone,
@@ -285,13 +291,14 @@ class DebtSmsReminderService {
     });
 
     if (existing != null) {
-      await (_db.update(_db.syncQueue)..where((q) => q.id.equals(existing.id))).write(
-        SyncQueueCompanion(payloadJson: Value(payload)),
-      );
+      await (_db.update(_db.syncQueue)..where((q) => q.id.equals(existing.id)))
+          .write(SyncQueueCompanion(payloadJson: Value(payload)));
       return;
     }
 
-    await _db.into(_db.syncQueue).insert(
+    await _db
+        .into(_db.syncQueue)
+        .insert(
           SyncQueueCompanion.insert(
             entityTable: 'sms',
             recordId: debtId.toString(),

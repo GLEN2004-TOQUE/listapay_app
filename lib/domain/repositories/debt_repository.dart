@@ -16,10 +16,23 @@ abstract class DebtRepository {
 
   Future<DebtRecord?> getDebt(int id);
 
+  Future<void> updateDebt({
+    required int debtId,
+    required int customerId,
+    required DateTime dueDate,
+  });
+
+  Future<void> recordCustomerPayment({
+    required int customerId,
+    required double amount,
+  });
+
   Future<void> recordPayment({
     required int debtId,
     required double amount,
   });
 
   Future<void> markAsPaid(int debtId);
+
+  Future<void> deleteDebt(int debtId);
 }

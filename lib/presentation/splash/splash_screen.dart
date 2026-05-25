@@ -10,37 +10,39 @@ class SplashScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
-          children: [
-            const Spacer(),
-            Image.asset(
-              'assets/images/LISTAPAY-LOGO.png',
-              height: 120,
-              errorBuilder: (_, __, ___) => const Icon(
-                Icons.store,
-                size: 80,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'ListaPay',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const BrandedLoadingIndicator(size: 124),
+                const SizedBox(height: 24),
+                Text(
+                  'ListaPay',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppColors.primary,
                   ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Offline-first POS',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Offline-first POS',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.textSecondary,
                   ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Preparing your store...',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-            const Spacer(),
-            const SimpleLoading(message: 'Loading store...'),
-            const SizedBox(height: 48),
-          ],
+          ),
         ),
       ),
     );

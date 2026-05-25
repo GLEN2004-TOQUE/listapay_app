@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:listapay/core/config/supabase_config.dart';
 import 'package:listapay/core/security/device_binding_service.dart';
 import 'package:listapay/core/theme/app_theme.dart';
+import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/data/services/store_session_service.dart';
 import 'package:listapay/data/services/sync_service.dart';
 
@@ -44,20 +45,23 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
     }
 
     setState(() => _busy = true);
+    final bindingService = context.read<DeviceBindingService>();
+    final storeSessionService = context.read<StoreSessionService>();
     try {
-      final deviceId = await context.read<DeviceBindingService>().currentDeviceId();
-      final session = await context.read<StoreSessionService>().pairWithCode(
-            _codeController.text,
-            deviceLabel: _labelController.text,
-            deviceFingerprint: deviceId,
-          );
-      if (mounted) {
-        setState(() => _session = session);
-        _showMessage('Paired with ${session.storeName}');
-      }
+      final deviceId = await bindingService.currentDeviceId();
+      final session = await storeSessionService.pairWithCode(
+        _codeController.text,
+        deviceLabel: _labelController.text,
+        deviceFingerprint: deviceId,
+      );
+      if (!mounted) return;
+      setState(() => _session = session);
+      _showMessage('Paired with ${session.storeName}');
     } on StoreSessionException catch (e) {
+      if (!mounted) return;
       _showMessage(e.message);
     } catch (e) {
+      if (!mounted) return;
       _showMessage(e.toString());
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -81,6 +85,7 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
     setState(() => _busy = true);
     try {
       final result = await context.read<SyncService>().syncNow();
+      if (!mounted) return;
       if (result.skipped) {
         _showMessage(result.message ?? 'Sync skipped');
       } else if (result.message != null) {
@@ -120,17 +125,17 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
           children: [
             Text(
               'Cloud sync',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
               'Cashiers keep using PIN offline. Pair this device once to back up '
               'and sync inventory, customers, sales, and debts.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
             if (!configured)
@@ -155,10 +160,10 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
               FilledButton.icon(
                 onPressed: _busy ? null : _syncNow,
                 icon: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                    ? const BrandedLoadingIndicator(
+                        size: 18,
+                        strokeWidth: 2,
+                        showHalo: false,
                       )
                     : const Icon(Icons.sync),
                 label: const Text('Sync now'),
@@ -190,10 +195,10 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
               FilledButton(
                 onPressed: _busy || !configured ? null : _pair,
                 child: _busy
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                    ? const BrandedLoadingIndicator(
+                        size: 20,
+                        strokeWidth: 2,
+                        showHalo: false,
                       )
                     : const Text('Pair device'),
               ),

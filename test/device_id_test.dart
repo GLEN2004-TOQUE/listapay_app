@@ -10,8 +10,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const storageChannel =
-      MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
+  const storageChannel = MethodChannel(
+    'plugins.it_nomads.com/flutter_secure_storage',
+  );
 
   final mockVault = <String, String>{};
 
@@ -19,26 +20,26 @@ void main() {
     mockVault.clear();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(storageChannel, (call) async {
-      final args = Map<String, dynamic>.from(call.arguments as Map);
-      final key = args['key'] as String;
-      switch (call.method) {
-        case 'read':
-          return mockVault[key];
-        case 'write':
-          mockVault[key] = args['value'] as String;
-          return null;
-        case 'delete':
-          mockVault.remove(key);
-          return null;
-        case 'deleteAll':
-          mockVault.clear();
-          return null;
-        case 'containsKey':
-          return mockVault.containsKey(key);
-        default:
-          return null;
-      }
-    });
+          final args = Map<String, dynamic>.from(call.arguments as Map);
+          final key = args['key'] as String;
+          switch (call.method) {
+            case 'read':
+              return mockVault[key];
+            case 'write':
+              mockVault[key] = args['value'] as String;
+              return null;
+            case 'delete':
+              mockVault.remove(key);
+              return null;
+            case 'deleteAll':
+              mockVault.clear();
+              return null;
+            case 'containsKey':
+              return mockVault.containsKey(key);
+            default:
+              return null;
+          }
+        });
   });
 
   tearDown(() {
@@ -92,15 +93,6 @@ void main() {
 
   group('DeviceBindingService', () {
     test('binds on first verify and accepts matching fingerprint', () async {
-      final fingerprint = DeviceFingerprintService(
-        packageInfoLoader: () async => PackageInfo(
-          appName: 'ListaPay',
-          packageName: 'com.example.listapay',
-          version: '1.0.0',
-          buildNumber: '1',
-        ),
-      );
-
       var calls = 0;
       final binding = DeviceBindingService(
         storage: const FlutterSecureStorage(),
@@ -142,17 +134,15 @@ void main() {
 }
 
 class _FakeFingerprintService extends DeviceFingerprintService {
-  _FakeFingerprintService({
-    required this.deviceId,
-    this.onGenerate,
-  }) : super(
-          packageInfoLoader: () async => PackageInfo(
-                appName: 'ListaPay',
-                packageName: 'com.example.listapay',
-                version: '1.0.0',
-                buildNumber: '1',
-              ),
-        );
+  _FakeFingerprintService({required this.deviceId, this.onGenerate})
+    : super(
+        packageInfoLoader: () async => PackageInfo(
+          appName: 'ListaPay',
+          packageName: 'com.example.listapay',
+          version: '1.0.0',
+          buildNumber: '1',
+        ),
+      );
 
   final String deviceId;
   final void Function()? onGenerate;

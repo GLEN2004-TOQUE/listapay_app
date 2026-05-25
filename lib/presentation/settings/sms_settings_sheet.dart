@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:listapay/core/utils/phone_format.dart';
+import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/data/services/connectivity_service.dart';
 import 'package:listapay/data/services/debt_sms_reminder_service.dart';
 import 'package:listapay/data/services/sms_service.dart';
@@ -52,16 +53,18 @@ class _SmsSettingsSheetState extends State<SmsSettingsSheet> {
     final sms = context.read<SmsService>();
     await sms.saveApiKey(_apiKeyController.text);
     await sms.saveSenderName(_senderController.text);
-    if (mounted) {
-      setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('SMS settings saved.')),
-      );
-    }
+    if (!mounted) return;
+    setState(() => _saving = false);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('SMS settings saved.')));
   }
 
   Future<void> _sendTestSms() async {
-    final online = await context.read<ConnectivityService>().isOnline();
+    final connectivity = context.read<ConnectivityService>();
+    final smsService = context.read<SmsService>();
+    final online = await connectivity.isOnline();
+    if (!mounted) return;
     if (!online) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('SMS requires an internet connection.')),
@@ -78,20 +81,19 @@ class _SmsSettingsSheetState extends State<SmsSettingsSheet> {
     }
 
     setState(() => _saving = true);
-    final result = await context.read<SmsService>().sendMessage(
-          phone: phone,
-          message: 'ListaPay test SMS — your Semaphore setup is working!',
-        );
-    if (mounted) {
-      setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.success ? 'Test SMS sent.' : result.errorMessage ?? 'Failed',
-          ),
+    final result = await smsService.sendMessage(
+      phone: phone,
+      message: 'ListaPay test SMS — your Semaphore setup is working!',
+    );
+    if (!mounted) return;
+    setState(() => _saving = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.success ? 'Test SMS sent.' : result.errorMessage ?? 'Failed',
         ),
-      );
-    }
+      ),
+    );
   }
 
   Future<void> _runReminders() async {
@@ -99,17 +101,16 @@ class _SmsSettingsSheetState extends State<SmsSettingsSheet> {
     final reminders = context.read<DebtSmsReminderService>();
     final result = await reminders.processReminders();
     final retries = await reminders.processRetryQueue();
-    if (mounted) {
-      setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'SMS sent: ${result.sent + retries.sent}, '
-            'queued: ${result.queued}, skipped: ${result.skipped}',
-          ),
+    if (!mounted) return;
+    setState(() => _saving = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'SMS sent: ${result.sent + retries.sent}, '
+          'queued: ${result.queued}, skipped: ${result.skipped}',
         ),
-      );
-    }
+      ),
+    );
   }
 
   @override
@@ -123,8 +124,8 @@ class _SmsSettingsSheetState extends State<SmsSettingsSheet> {
       ),
       child: _loading
           ? const SizedBox(
-              height: 120,
-              child: Center(child: CircularProgressIndicator()),
+              height: 140,
+              child: SimpleLoading(message: 'Loading SMS settings...'),
             )
           : SingleChildScrollView(
               child: Column(
@@ -134,8 +135,8 @@ class _SmsSettingsSheetState extends State<SmsSettingsSheet> {
                   Text(
                     'Semaphore SMS',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -152,7 +153,8 @@ class _SmsSettingsSheetState extends State<SmsSettingsSheet> {
                         icon: Icon(
                           _obscureKey ? Icons.visibility_off : Icons.visibility,
                         ),
-                        onPressed: () => setState(() => _obscureKey = !_obscureKey),
+                        onPressed: () =>
+                            setState(() => _obscureKey = !_obscureKey),
                       ),
                     ),
                   ),

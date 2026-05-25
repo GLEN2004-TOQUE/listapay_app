@@ -14,15 +14,13 @@ class PosException implements Exception {
 abstract class PosRepository {
   Future<List<CustomerSummary>> getCustomers();
 
-  Future<CustomerSummary> createCustomer({
-    required String name,
-    String? phone,
-  });
+  Future<CustomerSummary> createCustomer({required String name, String? phone});
 
   Future<CompletedSale> completeSale({
     required int userId,
     required List<CartLine> lines,
     required PaymentMethod paymentMethod,
+    double? amountPaid,
     int? customerId,
     DateTime? debtDueDate,
   });

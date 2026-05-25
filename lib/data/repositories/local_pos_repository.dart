@@ -32,6 +32,7 @@ class LocalPosRepository implements PosRepository {
     required int userId,
     required List<CartLine> lines,
     required PaymentMethod paymentMethod,
+    double? amountPaid,
     int? customerId,
     DateTime? debtDueDate,
   }) async {
@@ -44,6 +45,24 @@ class LocalPosRepository implements PosRepository {
     }
 
     final total = lines.fold<double>(0, (sum, line) => sum + line.subtotal);
+    if (paymentMethod == PaymentMethod.cash) {
+      if (amountPaid == null || amountPaid <= 0) {
+        throw const PosException('Enter the amount paid by the customer.');
+      }
+      if (amountPaid < total) {
+        throw const PosException('Amount paid is less than the sale total.');
+      }
+    }
+
+    final normalizedAmountPaid = switch (paymentMethod) {
+      PaymentMethod.cash => amountPaid ?? 0,
+      PaymentMethod.utang => 0.0,
+      _ => total,
+    };
+    final changeAmount = paymentMethod == PaymentMethod.cash
+        ? normalizedAmountPaid - total
+        : 0.0;
+
     String? customerName;
     if (customerId != null) {
       final customer = await _customers.getCustomer(customerId);
@@ -54,9 +73,9 @@ class LocalPosRepository implements PosRepository {
 
     final saleId = await _db.transaction(() async {
       for (final line in lines) {
-        final product = await (_db.select(_db.products)
-              ..where((p) => p.id.equals(line.productId)))
-            .getSingleOrNull();
+        final product = await (_db.select(
+          _db.products,
+        )..where((p) => p.id.equals(line.productId))).getSingleOrNull();
 
         if (product == null) {
           throw PosException('Product "${line.name}" no longer exists.');
@@ -68,18 +87,24 @@ class LocalPosRepository implements PosRepository {
         }
       }
 
-      final id = await _db.into(_db.sales).insert(
+      final id = await _db
+          .into(_db.sales)
+          .insert(
             SalesCompanion.insert(
               userId: userId,
               customerId: Value(customerId),
               total: total,
+              amountPaid: Value(normalizedAmountPaid),
+              changeAmount: Value(changeAmount),
               paymentMethod: paymentMethod.value,
               synced: const Value(false),
             ),
           );
 
       for (final line in lines) {
-        await _db.into(_db.saleItems).insert(
+        await _db
+            .into(_db.saleItems)
+            .insert(
               SaleItemsCompanion.insert(
                 saleId: id,
                 productId: line.productId,
@@ -89,12 +114,13 @@ class LocalPosRepository implements PosRepository {
               ),
             );
 
-        final product = await (_db.select(_db.products)
-              ..where((p) => p.id.equals(line.productId)))
-            .getSingle();
+        final product = await (_db.select(
+          _db.products,
+        )..where((p) => p.id.equals(line.productId))).getSingle();
 
         final newStock = product.stockQty - line.qty;
-        await (_db.update(_db.products)..where((p) => p.id.equals(line.productId)))
+        await (_db.update(_db.products)
+              ..where((p) => p.id.equals(line.productId)))
             .write(ProductsCompanion(stockQty: Value(newStock)));
 
         if (newStock <= product.lowStockThreshold) {
@@ -104,9 +130,12 @@ class LocalPosRepository implements PosRepository {
 
       if (paymentMethod == PaymentMethod.utang && customerId != null) {
         final due = debtDueDate ?? DateTime.now().add(const Duration(days: 30));
-        await _db.into(_db.debts).insert(
+        await _db
+            .into(_db.debts)
+            .insert(
               DebtsCompanion.insert(
                 customerId: customerId,
+                saleId: Value(id),
                 amount: total,
                 dueDate: due,
                 createdBy: userId,
@@ -121,6 +150,8 @@ class LocalPosRepository implements PosRepository {
     return CompletedSale(
       saleId: saleId,
       total: total,
+      amountPaid: normalizedAmountPaid,
+      changeAmount: changeAmount,
       paymentMethod: paymentMethod,
       lines: lines,
       createdAt: DateTime.now(),

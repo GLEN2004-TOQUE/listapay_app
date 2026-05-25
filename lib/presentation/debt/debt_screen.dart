@@ -1,36 +1,86 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:listapay/core/router/app_router.dart';
+import 'package:listapay/core/utils/currency_format.dart';
 import 'package:listapay/core/widgets/empty_state.dart';
 import 'package:listapay/core/widgets/simple_loading.dart';
+import 'package:listapay/data/services/receipt_service.dart';
+import 'package:listapay/domain/entities/app_user.dart';
+import 'package:listapay/domain/entities/debt_record.dart';
 import 'package:listapay/domain/repositories/debt_repository.dart';
+import 'package:listapay/presentation/auth/auth_cubit.dart';
 import 'package:listapay/presentation/debt/debt_list_cubit.dart';
+import 'package:listapay/presentation/debt/widgets/customer_tab_payment_dialog.dart';
 import 'package:listapay/presentation/debt/widgets/debt_tile.dart';
 
-class DebtScreen extends StatelessWidget {
+class DebtScreen extends StatefulWidget {
   const DebtScreen({super.key});
 
   @override
+  State<DebtScreen> createState() => _DebtScreenState();
+}
+
+class _DebtScreenState extends State<DebtScreen> {
+  late final DebtListCubit _debtListCubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _debtListCubit = DebtListCubit(context.read<DebtRepository>())..start();
+  }
+
+  @override
+  void dispose() {
+    _debtListCubit.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => DebtListCubit(context.read<DebtRepository>())..start(),
-      child: const _DebtView(),
-    );
+    return BlocProvider.value(value: _debtListCubit, child: const _DebtView());
   }
 }
 
 class _DebtView extends StatelessWidget {
   const _DebtView();
 
+  Future<void> _collectWholeTabPayment(
+    BuildContext context,
+    _CustomerDebtGroup group,
+  ) async {
+    final repository = context.read<DebtRepository>();
+    final messenger = ScaffoldMessenger.of(context);
+    final recorded = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => CustomerTabPaymentDialog(
+        repository: repository,
+        customerId: group.customerId,
+        totalRemaining: group.totalRemaining,
+      ),
+    );
+
+    if (!context.mounted || recorded != true) return;
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          'Payment recorded and applied to ${group.customerName}\'s oldest unpaid debts.',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<DebtListCubit, DebtListState>(
       listener: (context, state) {
         if (state.errorMessage != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.errorMessage!)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
         }
       },
       builder: (context, state) {
@@ -80,6 +130,9 @@ class _DebtView extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context, DebtListState state) {
+    final role = context.watch<AuthCubit>().state.user?.role;
+    final canPay = role == UserRole.admin || role == UserRole.cashier;
+
     if (state.isLoading && state.debts.isEmpty) {
       return const SimpleLoading(message: 'Loading debts...');
     }
@@ -89,8 +142,24 @@ class _DebtView extends StatelessWidget {
         icon: Icons.account_balance_wallet,
         title: 'No debts here',
         subtitle: state.filter == DebtFilter.all
-            ? 'Utang sales from POS will appear here.'
+            ? 'Customer tabs from POS utang sales will appear here.'
             : 'No debts match this filter.',
+      );
+    }
+
+    if (state.filter != DebtFilter.paid) {
+      final groupedDebts = _groupDebtsByCustomer(state.debts);
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: groupedDebts.length,
+        itemBuilder: (context, index) {
+          final group = groupedDebts[index];
+          return _CustomerDebtGroupCard(
+            group: group,
+            canPay: canPay,
+            onPayTab: () => _collectWholeTabPayment(context, group),
+          );
+        },
       );
     }
 
@@ -104,6 +173,287 @@ class _DebtView extends StatelessWidget {
           onTap: () => context.push(AppRoutes.debtDetail(debt.id)),
         );
       },
+    );
+  }
+
+  List<_CustomerDebtGroup> _groupDebtsByCustomer(List<DebtRecord> debts) {
+    final grouped = <int, List<DebtRecord>>{};
+
+    for (final debt in debts) {
+      grouped.putIfAbsent(debt.customerId, () => []).add(debt);
+    }
+
+    final results = grouped.entries.map((entry) {
+      final customerDebts = [...entry.value]
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final firstDebt = customerDebts.first;
+      return _CustomerDebtGroup(
+        customerId: firstDebt.customerId,
+        customerName: firstDebt.customerName,
+        customerPhone: firstDebt.customerPhone,
+        debts: customerDebts,
+      );
+    }).toList();
+
+    results.sort((a, b) => a.customerName.compareTo(b.customerName));
+    return results;
+  }
+}
+
+class _CustomerDebtGroup {
+  const _CustomerDebtGroup({
+    required this.customerId,
+    required this.customerName,
+    required this.customerPhone,
+    required this.debts,
+  });
+
+  final int customerId;
+  final String customerName;
+  final String? customerPhone;
+  final List<DebtRecord> debts;
+
+  double get totalRemaining =>
+      debts.fold<double>(0, (sum, debt) => sum + debt.remaining);
+
+  int get totalItems =>
+      debts.fold<int>(0, (sum, debt) => sum + debt.items.length);
+
+  DateTime get latestAddedAt => debts
+      .map((debt) => debt.createdAt)
+      .reduce((latest, current) => current.isAfter(latest) ? current : latest);
+}
+
+class _CustomerDebtGroupCard extends StatelessWidget {
+  const _CustomerDebtGroupCard({
+    required this.group,
+    required this.canPay,
+    required this.onPayTab,
+  });
+
+  final _CustomerDebtGroup group;
+  final bool canPay;
+  final VoidCallback onPayTab;
+
+  Future<void> _exportCustomerTab(
+    BuildContext context, {
+    required bool print,
+  }) async {
+    final receiptService = context.read<ReceiptService>();
+    try {
+      if (print) {
+        await receiptService.printCustomerDebtStatement(
+          customerName: group.customerName,
+          customerPhone: group.customerPhone,
+          debts: group.debts,
+        );
+      } else {
+        await receiptService.shareCustomerDebtStatement(
+          customerName: group.customerName,
+          customerPhone: group.customerPhone,
+          debts: group.debts,
+        );
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            print
+                ? 'Could not open the print dialog.'
+                : 'Could not generate the PDF file.',
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final latestFormat = DateFormat('MMM d, yyyy • h:mm a');
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                group.customerName,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              formatPeso(group.totalRemaining),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (group.customerPhone != null) Text(group.customerPhone!),
+              Text(
+                '${group.debts.length} active utang entr${group.debts.length == 1 ? 'y' : 'ies'} • last added ${latestFormat.format(group.latestAddedAt)}',
+              ),
+            ],
+          ),
+        ),
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Total unpaid'),
+              Text(
+                formatPeso(group.totalRemaining),
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [const Text('Items on tab'), Text('${group.totalItems}')],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () => _exportCustomerTab(context, print: true),
+                icon: const Icon(Icons.print_outlined),
+                label: const Text('Print tab'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _exportCustomerTab(context, print: false),
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('Download PDF'),
+              ),
+              if (canPay)
+                FilledButton.icon(
+                  onPressed: onPayTab,
+                  icon: const Icon(Icons.payments_outlined),
+                  label: const Text('Pay tab'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...group.debts.map((debt) => _DebtEntryCard(debt: debt)),
+        ],
+      ),
+    );
+  }
+}
+
+class _DebtEntryCard extends StatelessWidget {
+  const _DebtEntryCard({required this.debt});
+
+  final DebtRecord debt;
+
+  @override
+  Widget build(BuildContext context) {
+    final addedFormat = DateFormat('MMM d, yyyy • h:mm a');
+    final dueFormat = DateFormat('MMM d, yyyy');
+
+    return InkWell(
+      onTap: () => context.push(AppRoutes.debtDetail(debt.id)),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Added ${addedFormat.format(debt.createdAt)}',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Due ${dueFormat.format(debt.dueDate)}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      formatPeso(debt.remaining),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Remaining',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [const Text('Original'), Text(formatPeso(debt.amount))],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [const Text('Paid'), Text(formatPeso(debt.paidAmount))],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Items taken',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            if (debt.items.isEmpty)
+              const Text('No item details available.')
+            else
+              ...debt.items.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text('${item.qty} x ${item.productName}'),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        formatPeso(item.subtotal),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

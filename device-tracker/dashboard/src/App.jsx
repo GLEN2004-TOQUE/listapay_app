@@ -54,12 +54,19 @@ export default function App() {
   const [devices, setDevices] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [platformFilter, setPlatformFilter] = useState('all');
   const [actionId, setActionId] = useState('');
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ showTableLoader = false, showRefreshLoader = false } = {}) => {
+    if (showTableLoader) {
+      setLoading(true);
+    }
+    if (showRefreshLoader) {
+      setRefreshing(true);
+    }
     try {
       setError('');
       const [deviceResponse, statsResponse] = await Promise.all([
@@ -72,11 +79,12 @@ export default function App() {
       setError(err.message || 'Failed to load devices.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    load();
+    load({ showTableLoader: true });
     const timer = setInterval(load, 10000);
     return () => clearInterval(timer);
   }, [load]);
@@ -175,10 +183,17 @@ export default function App() {
           </select>
           <button
             type="button"
-            onClick={load}
-            className="rounded-xl bg-emerald-500 px-4 py-3 text-sm font-medium text-slate-950 hover:bg-emerald-400"
+            disabled={refreshing}
+            onClick={() => load({ showRefreshLoader: true })}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-medium text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Refresh
+            {refreshing && (
+              <span
+                aria-hidden="true"
+                className="h-4 w-4 animate-spin rounded-full border-2 border-slate-950/30 border-t-slate-950"
+              />
+            )}
+            {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
         </section>
 

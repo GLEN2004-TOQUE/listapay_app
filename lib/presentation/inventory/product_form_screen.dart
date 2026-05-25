@@ -56,7 +56,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
     setState(() {
       _categories = categories;
-      _categoryId = product?.categoryId ??
+      _categoryId =
+          product?.categoryId ??
           (categories.isNotEmpty ? categories.first.id : null);
       if (product != null) {
         _nameController.text = product.name;
@@ -94,21 +95,21 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     setState(() => _isSaving = true);
     try {
       await context.read<InventoryRepository>().saveProduct(
-            id: widget.productId,
-            name: _nameController.text,
-            barcode: _barcodeController.text,
-            categoryId: _categoryId,
-            price: double.parse(_priceController.text),
-            cost: double.tryParse(_costController.text) ?? 0,
-            stockQty: int.parse(_stockController.text),
-            lowStockThreshold: int.parse(_thresholdController.text),
-          );
+        id: widget.productId,
+        name: _nameController.text,
+        barcode: _barcodeController.text,
+        categoryId: _categoryId,
+        price: double.parse(_priceController.text),
+        cost: double.tryParse(_costController.text) ?? 0,
+        stockQty: int.parse(_stockController.text),
+        lowStockThreshold: int.parse(_thresholdController.text),
+      );
       if (mounted) context.pop();
     } on InventoryException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (_) {
       if (mounted) {
@@ -124,9 +125,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? 'Edit product' : 'Add product'),
-      ),
+      appBar: AppBar(title: Text(_isEditing ? 'Edit product' : 'Add product')),
       body: Stack(
         children: [
           if (_isLoading)
@@ -139,10 +138,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 children: [
                   TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Product name *'),
+                    decoration: const InputDecoration(
+                      labelText: 'Product name *',
+                    ),
                     textCapitalization: TextCapitalization.words,
-                    validator: (v) =>
-                        v == null || v.trim().isEmpty ? 'Name is required' : null,
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Name is required'
+                        : null,
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -170,7 +172,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<int>(
-                    value: _categoryId,
+                    initialValue: _categoryId,
                     decoration: const InputDecoration(labelText: 'Category'),
                     items: _categories
                         .map(
@@ -250,7 +252,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                             labelText: 'Stock qty *',
                           ),
                           keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                           validator: (v) {
                             if (v == null || v.isEmpty) return 'Required';
                             if (int.tryParse(v) == null) return 'Invalid';
@@ -266,7 +270,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                             labelText: 'Low stock at *',
                           ),
                           keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                           validator: (v) {
                             if (v == null || v.isEmpty) return 'Required';
                             if (int.tryParse(v) == null) return 'Invalid';
