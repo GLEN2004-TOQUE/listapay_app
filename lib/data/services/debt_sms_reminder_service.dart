@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:listapay/core/utils/ph_time.dart';
 import 'package:listapay/core/utils/phone_format.dart';
 import 'package:listapay/core/utils/sms_templates.dart';
 import 'package:listapay/data/database/app_database.dart';
@@ -170,8 +171,7 @@ class DebtSmsReminderService {
   }
 
   Future<List<_SmsTarget>> _findSmsTargets() async {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    final today = PhTime.today();
     final dueSoonLimit = today.add(const Duration(days: 3));
 
     final query = _db.select(_db.debts).join([
@@ -195,11 +195,7 @@ class DebtSmsReminderService {
       final remaining = debt.amount - paid;
       if (remaining <= 0.001) continue;
 
-      final dueDay = DateTime(
-        debt.dueDate.year,
-        debt.dueDate.month,
-        debt.dueDate.day,
-      );
+      final dueDay = PhTime.startOfDay(debt.dueDate);
 
       if (dueDay.isBefore(today)) {
         targets.add(
@@ -235,9 +231,7 @@ class DebtSmsReminderService {
   }
 
   Future<bool> _wasSentRecently(int debtId, String smsType) async {
-    final since = DateTime.now().subtract(
-      const Duration(hours: _cooldownHours),
-    );
+    final since = PhTime.now().subtract(const Duration(hours: _cooldownHours));
     final existing =
         await (_db.select(_db.notificationLog)..where(
               (n) =>

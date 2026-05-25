@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:listapay/core/router/app_router.dart';
 import 'package:listapay/core/utils/currency_format.dart';
+import 'package:listapay/core/utils/ph_time.dart';
 import 'package:listapay/core/widgets/empty_state.dart';
 import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/data/services/receipt_service.dart';
@@ -301,7 +302,7 @@ class _CustomerDebtGroupCard extends StatelessWidget {
             children: [
               if (group.customerPhone != null) Text(group.customerPhone!),
               Text(
-                '${group.debts.length} active utang entr${group.debts.length == 1 ? 'y' : 'ies'} • last added ${latestFormat.format(group.latestAddedAt)}',
+                '${group.debts.length} active utang entr${group.debts.length == 1 ? 'y' : 'ies'} • last added ${PhTime.format(latestFormat, group.latestAddedAt)}',
               ),
             ],
           ),
@@ -385,12 +386,12 @@ class _DebtEntryCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Added ${addedFormat.format(debt.createdAt)}',
+                        'Added ${PhTime.format(addedFormat, debt.createdAt)}',
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Due ${dueFormat.format(debt.dueDate)}',
+                        'Due ${PhTime.format(dueFormat, debt.dueDate)}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:listapay/core/router/app_router.dart';
 import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/core/utils/currency_format.dart';
+import 'package:listapay/core/utils/ph_time.dart';
 import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/data/services/notification_service.dart';
 import 'package:listapay/data/services/payment_config_service.dart';
@@ -36,7 +37,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final TextEditingController _cashPaidController = TextEditingController();
   List<CustomerSummary> _customers = [];
   CustomerSummary? _selectedCustomer;
-  DateTime _dueDate = DateTime.now().add(const Duration(days: 30));
+  DateTime _dueDate = PhTime.today().add(const Duration(days: 30));
   bool _loadingCustomers = true;
   bool _isProcessing = false;
   EwalletPaymentConfig? _ewalletConfig;
@@ -290,8 +291,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _dueDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      firstDate: PhTime.today(),
+      lastDate: PhTime.today().add(const Duration(days: 365)),
     );
     if (picked != null) setState(() => _dueDate = picked);
   }
@@ -629,14 +630,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Added ${dateTimeFormat.format(debt.createdAt)}',
+                                            'Added ${PhTime.format(dateTimeFormat, debt.createdAt)}',
                                             style: const TextStyle(
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            'Due ${dateFormat.format(debt.dueDate)}',
+                                            'Due ${PhTime.format(dateFormat, debt.dueDate)}',
                                             style: Theme.of(
                                               sheetContext,
                                             ).textTheme.bodySmall,
@@ -846,7 +847,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      dateTimeFormat.format(debt.createdAt),
+                                      PhTime.format(
+                                        dateTimeFormat,
+                                        debt.createdAt,
+                                      ),
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -1018,7 +1022,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Due date'),
-                    subtitle: Text(dateFormat.format(_dueDate)),
+                    subtitle: Text(PhTime.format(dateFormat, _dueDate)),
                     trailing: const Icon(Icons.calendar_today),
                     onTap: _isProcessing ? null : _pickDueDate,
                   ),
