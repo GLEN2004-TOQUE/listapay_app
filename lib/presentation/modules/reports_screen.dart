@@ -43,6 +43,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
           title: const Text('Reports'),
           bottom: const TabBar(
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            indicatorColor: Colors.white,
             tabs: [
               Tab(text: 'Reports', icon: Icon(Icons.bar_chart)),
               Tab(text: 'Purchases', icon: Icon(Icons.receipt_long_outlined)),
