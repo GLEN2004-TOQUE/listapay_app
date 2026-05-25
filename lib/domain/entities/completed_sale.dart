@@ -6,6 +6,8 @@ class CompletedSale extends Equatable {
   const CompletedSale({
     required this.saleId,
     required this.total,
+    required this.amountPaid,
+    required this.changeAmount,
     required this.paymentMethod,
     required this.lines,
     required this.createdAt,
@@ -15,6 +17,8 @@ class CompletedSale extends Equatable {
 
   final int saleId;
   final double total;
+  final double amountPaid;
+  final double changeAmount;
   final PaymentMethod paymentMethod;
   final List<CartLine> lines;
   final DateTime createdAt;
@@ -23,12 +27,14 @@ class CompletedSale extends Equatable {
 
   @override
   List<Object?> get props => [
-        saleId,
-        total,
-        paymentMethod,
-        lines,
-        createdAt,
-        customerName,
-        lowStockProductNames,
-      ];
+    saleId,
+    total,
+    amountPaid,
+    changeAmount,
+    paymentMethod,
+    lines,
+    createdAt,
+    customerName,
+    lowStockProductNames,
+  ];
 }

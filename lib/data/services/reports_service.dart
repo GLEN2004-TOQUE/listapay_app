@@ -34,6 +34,42 @@ class PaymentMethodBreakdown {
   final int count;
 }
 
+class PurchaseHistoryItem {
+  const PurchaseHistoryItem({
+    required this.productName,
+    required this.qty,
+    required this.unitPrice,
+    required this.subtotal,
+  });
+
+  final String productName;
+  final int qty;
+  final double unitPrice;
+  final double subtotal;
+}
+
+class PurchaseHistoryEntry {
+  const PurchaseHistoryEntry({
+    required this.saleId,
+    required this.createdAt,
+    required this.paymentMethod,
+    required this.total,
+    required this.amountPaid,
+    required this.changeAmount,
+    required this.items,
+    this.customerName,
+  });
+
+  final int saleId;
+  final DateTime createdAt;
+  final String paymentMethod;
+  final double total;
+  final double amountPaid;
+  final double changeAmount;
+  final List<PurchaseHistoryItem> items;
+  final String? customerName;
+}
+
 class StoreReportSummary {
   const StoreReportSummary({
     required this.today,
@@ -45,6 +81,7 @@ class StoreReportSummary {
     required this.thisMonthEarnings,
     required this.thisYearEarnings,
     required this.paymentBreakdown,
+    required this.purchaseHistory,
     required this.outstandingDebt,
     required this.activeDebtCount,
     required this.overdueDebtCount,
@@ -59,6 +96,7 @@ class StoreReportSummary {
   final EarningsPeriodStats thisMonthEarnings;
   final EarningsPeriodStats thisYearEarnings;
   final List<PaymentMethodBreakdown> paymentBreakdown;
+  final List<PurchaseHistoryEntry> purchaseHistory;
   final double outstandingDebt;
   final int activeDebtCount;
   final int overdueDebtCount;
@@ -82,16 +120,33 @@ class ReportsService {
     final sales = await _db.select(_db.sales).get();
     final saleItems = await _db.select(_db.saleItems).get();
     final products = await _db.select(_db.products).get();
+    final customers = await _db.select(_db.customers).get();
 
     final productCosts = {
       for (final product in products) product.id: product.cost,
     };
+    final productNames = {
+      for (final product in products) product.id: product.name,
+    };
+    final customerNames = {
+      for (final customer in customers) customer.id: customer.name,
+    };
     final saleCostTotals = <int, double>{};
+    final saleItemsBySaleId = <int, List<PurchaseHistoryItem>>{};
 
     for (final item in saleItems) {
       final itemCost = (productCosts[item.productId] ?? 0) * item.qty;
       saleCostTotals[item.saleId] =
           (saleCostTotals[item.saleId] ?? 0) + itemCost;
+      final items = saleItemsBySaleId.putIfAbsent(item.saleId, () => []);
+      items.add(
+        PurchaseHistoryItem(
+          productName: productNames[item.productId] ?? 'Unknown item',
+          qty: item.qty,
+          unitPrice: item.unitPrice,
+          subtotal: item.subtotal,
+        ),
+      );
     }
 
     bool isWithin(DateTime createdAt, DateTime start, {DateTime? end}) {
@@ -172,6 +227,27 @@ class ReportsService {
             .toList()
           ..sort((a, b) => b.total.compareTo(a.total));
 
+    final purchaseHistory = sales.map((sale) {
+      final defaultAmountPaid = sale.paymentMethod == 'utang'
+          ? 0.0
+          : sale.total;
+      final amountPaid = sale.amountPaid > 0
+          ? sale.amountPaid
+          : defaultAmountPaid;
+      return PurchaseHistoryEntry(
+        saleId: sale.id,
+        createdAt: sale.createdAt,
+        paymentMethod: sale.paymentMethod,
+        total: sale.total,
+        amountPaid: amountPaid,
+        changeAmount: sale.changeAmount,
+        customerName: sale.customerId == null
+            ? null
+            : customerNames[sale.customerId!],
+        items: List.unmodifiable(saleItemsBySaleId[sale.id] ?? const []),
+      );
+    }).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
     final debts = await _db.select(_db.debts).get();
     final payments = await _db.select(_db.payments).get();
 
@@ -213,6 +289,7 @@ class ReportsService {
       thisMonthEarnings: monthEarnings,
       thisYearEarnings: yearEarnings,
       paymentBreakdown: paymentBreakdown,
+      purchaseHistory: purchaseHistory,
       outstandingDebt: outstanding,
       activeDebtCount: activeCount,
       overdueDebtCount: overdueCount,

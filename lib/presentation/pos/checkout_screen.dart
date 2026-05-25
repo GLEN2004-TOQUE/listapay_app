@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -31,6 +32,7 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   PaymentMethod _paymentMethod = PaymentMethod.cash;
+  final TextEditingController _cashPaidController = TextEditingController();
   List<CustomerSummary> _customers = [];
   CustomerSummary? _selectedCustomer;
   DateTime _dueDate = DateTime.now().add(const Duration(days: 30));
@@ -44,6 +46,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.initState();
     _loadCustomers();
     _loadEwalletConfig(_paymentMethod);
+  }
+
+  @override
+  void dispose() {
+    _cashPaidController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadEwalletConfig(PaymentMethod method) async {
@@ -149,12 +157,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final user = context.read<AuthCubit>().state.user!;
     final posRepo = context.read<PosRepository>();
     final receiptService = context.read<ReceiptService>();
+    final amountPaid = _paymentMethod == PaymentMethod.cash
+        ? _parseAmount(_cashPaidController.text)
+        : null;
 
     if (_paymentMethod.requiresCustomer && _selectedCustomer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Select a customer for Utang.')),
       );
       return;
+    }
+    if (_paymentMethod == PaymentMethod.cash) {
+      if (amountPaid == null || amountPaid <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Enter the amount paid by the customer.'),
+          ),
+        );
+        return;
+      }
+      if (amountPaid < cart.state.total) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Amount paid is less than the sale total.'),
+          ),
+        );
+        return;
+      }
     }
 
     setState(() => _isProcessing = true);
@@ -164,6 +193,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         userId: user.id,
         lines: cart.state.lines,
         paymentMethod: _paymentMethod,
+        amountPaid: amountPaid,
         customerId: _selectedCustomer?.id,
         debtDueDate: _paymentMethod == PaymentMethod.utang ? _dueDate : null,
       );
@@ -209,6 +239,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           children: [
             Text('Sale #${sale.saleId} · ${formatPeso(sale.total)}'),
             Text('Paid via ${sale.paymentMethod.label}'),
+            if (sale.paymentMethod == PaymentMethod.cash) ...[
+              const SizedBox(height: 12),
+              _CheckoutSummaryRow(
+                label: 'Amount paid',
+                value: formatPeso(sale.amountPaid),
+              ),
+              const SizedBox(height: 6),
+              _CheckoutSummaryRow(
+                label: 'Change',
+                value: formatPeso(sale.changeAmount),
+                valueColor: AppColors.primary,
+              ),
+            ],
             if (sale.lowStockProductNames.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
@@ -273,6 +316,100 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return debts.fold<double>(0, (sum, debt) => sum + debt.remaining);
   }
 
+  double? _parseAmount(String raw) {
+    final sanitized = raw.replaceAll(',', '').trim();
+    if (sanitized.isEmpty) return null;
+    return double.tryParse(sanitized);
+  }
+
+  Widget _buildCashPaymentSection({
+    required BuildContext context,
+    required CartState cart,
+  }) {
+    final amountPaid = _parseAmount(_cashPaidController.text) ?? 0;
+    final shortfall = amountPaid < cart.total ? cart.total - amountPaid : 0.0;
+    final changeAmount = amountPaid > cart.total
+        ? amountPaid - cart.total
+        : 0.0;
+    final hasEnoughCash = amountPaid >= cart.total && amountPaid > 0;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Cash payment',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _cashPaidController,
+              enabled: !_isProcessing,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}$')),
+              ],
+              decoration: const InputDecoration(
+                labelText: 'Amount paid by customer',
+                hintText: '0.00',
+                prefixText: 'PHP ',
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  _CheckoutSummaryRow(
+                    label: 'Total due',
+                    value: formatPeso(cart.total),
+                    valueColor: AppColors.primary,
+                  ),
+                  const SizedBox(height: 8),
+                  _CheckoutSummaryRow(
+                    label: 'Amount paid',
+                    value: amountPaid > 0
+                        ? formatPeso(amountPaid)
+                        : 'Waiting for entry',
+                  ),
+                  const SizedBox(height: 8),
+                  _CheckoutSummaryRow(
+                    label: hasEnoughCash ? 'Customer change' : 'Still due',
+                    value: formatPeso(hasEnoughCash ? changeAmount : shortfall),
+                    valueColor: hasEnoughCash
+                        ? AppColors.primary
+                        : AppColors.error,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              hasEnoughCash
+                  ? 'Change is calculated automatically before the sale is completed.'
+                  : 'Enter the cash received to see the customer\'s change before confirming the sale.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _exportCustomerTab({
     required CustomerSummary customer,
     required List<DebtRecord> debts,
@@ -333,17 +470,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               children: [
                 Text(
                   '${customer.name} tab',
-                  style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    sheetContext,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 if (customer.phone != null) ...[
                   const SizedBox(height: 4),
                   Text(
                     customer.phone!,
-                    style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                    style: Theme.of(sheetContext).textTheme.bodyMedium
+                        ?.copyWith(color: AppColors.textSecondary),
                   ),
                 ],
                 const SizedBox(height: 16),
@@ -358,7 +494,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             const Text('Current unpaid tab'),
                             Text(
                               formatPeso(balance),
-                              style: Theme.of(sheetContext).textTheme.titleMedium
+                              style: Theme.of(sheetContext)
+                                  .textTheme
+                                  .titleMedium
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                           ],
@@ -370,7 +508,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             const Text('After this sale'),
                             Text(
                               formatPeso(balance + pendingSaleTotal),
-                              style: Theme.of(sheetContext).textTheme.titleMedium
+                              style: Theme.of(sheetContext)
+                                  .textTheme
+                                  .titleMedium
                                   ?.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.primary,
@@ -391,10 +531,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       onPressed: _isProcessing
                           ? null
                           : () => _exportCustomerTab(
-                                customer: customer,
-                                debts: debts,
-                                print: true,
-                              ),
+                              customer: customer,
+                              debts: debts,
+                              print: true,
+                            ),
                       icon: const Icon(Icons.print_outlined),
                       label: const Text('Print tab'),
                     ),
@@ -402,10 +542,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       onPressed: _isProcessing
                           ? null
                           : () => _exportCustomerTab(
-                                customer: customer,
-                                debts: debts,
-                                print: false,
-                              ),
+                              customer: customer,
+                              debts: debts,
+                              print: false,
+                            ),
                       icon: const Icon(Icons.picture_as_pdf_outlined),
                       label: const Text('Download PDF'),
                     ),
@@ -414,9 +554,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 const SizedBox(height: 16),
                 Text(
                   'Active utang entries',
-                  style: Theme.of(sheetContext).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(
+                    sheetContext,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 if (debts.isEmpty)
@@ -464,14 +604,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     ),
                                     Text(
                                       formatPeso(debt.remaining),
-                                      style: Theme.of(
-                                        sheetContext,
-                                      ).textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: debt.isDueSoon
-                                            ? AppColors.offline
-                                            : AppColors.primary,
-                                      ),
+                                      style: Theme.of(sheetContext)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: debt.isDueSoon
+                                                ? AppColors.offline
+                                                : AppColors.primary,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -496,11 +637,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 const SizedBox(height: 12),
                                 Text(
                                   'Items',
-                                  style: Theme.of(
-                                    sheetContext,
-                                  ).textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  style: Theme.of(sheetContext)
+                                      .textTheme
+                                      .titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w600),
                                 ),
                                 const SizedBox(height: 8),
                                 if (debt.items.isEmpty)
@@ -645,53 +785,55 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...debts.take(2).map(
-                    (debt) => Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                  ...debts
+                      .take(2)
+                      .map(
+                        (debt) => Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  dateTimeFormat.format(debt.createdAt),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      dateTimeFormat.format(debt.createdAt),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  Text(
+                                    formatPeso(debt.remaining),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
+                              const SizedBox(height: 6),
                               Text(
-                                formatPeso(debt.remaining),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                debt.items.isEmpty
+                                    ? 'No item details available.'
+                                    : debt.items
+                                          .map(
+                                            (item) =>
+                                                '${item.qty} x ${item.productName}',
+                                          )
+                                          .join(', '),
+                                style: Theme.of(context).textTheme.bodySmall,
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            debt.items.isEmpty
-                                ? 'No item details available.'
-                                : debt.items
-                                      .map(
-                                        (item) =>
-                                            '${item.qty} x ${item.productName}',
-                                      )
-                                      .join(', '),
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
                 ],
               ],
             ),
@@ -778,6 +920,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       config: _ewalletConfig ?? const EwalletPaymentConfig(),
                     ),
                 ],
+                if (_paymentMethod == PaymentMethod.cash) ...[
+                  const SizedBox(height: 12),
+                  _buildCashPaymentSection(context: context, cart: cart),
+                ],
                 if (_paymentMethod.requiresCustomer) ...[
                   const SizedBox(height: 20),
                   Row(
@@ -847,6 +993,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CheckoutSummaryRow extends StatelessWidget {
+  const _CheckoutSummaryRow({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: valueColor,
+          ),
+        ),
+      ],
     );
   }
 }

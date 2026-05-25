@@ -47,6 +47,8 @@ class Sales extends Table {
   IntColumn get customerId => integer().nullable().references(Customers, #id)();
   IntColumn get userId => integer().references(Users, #id)();
   RealColumn get total => real()();
+  RealColumn get amountPaid => real().withDefault(const Constant(0))();
+  RealColumn get changeAmount => real().withDefault(const Constant(0))();
   TextColumn get paymentMethod => text()();
   TextColumn get status => text().withDefault(const Constant('completed'))();
   BoolColumn get synced => boolean().withDefault(const Constant(false))();
@@ -130,7 +132,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -143,6 +145,18 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await m.addColumn(debts, debts.saleId);
+      }
+      if (from < 4) {
+        await m.addColumn(sales, sales.amountPaid);
+        await m.addColumn(sales, sales.changeAmount);
+        await customStatement('''
+          UPDATE sales
+          SET amount_paid = CASE
+            WHEN payment_method = 'utang' THEN 0
+            ELSE total
+          END,
+              change_amount = 0
+        ''');
       }
     },
   );

@@ -2,6 +2,7 @@ import 'package:intl/intl.dart';
 import 'package:listapay/core/utils/currency_format.dart';
 import 'package:listapay/domain/entities/completed_sale.dart';
 import 'package:listapay/domain/entities/debt_record.dart';
+import 'package:listapay/domain/entities/payment_method.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -156,6 +157,24 @@ class ReceiptService {
               ),
               pw.SizedBox(height: 4),
               pw.Text('Paid via: ${sale.paymentMethod.label}'),
+              if (sale.paymentMethod == PaymentMethod.cash) ...[
+                pw.SizedBox(height: 6),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('Amount paid'),
+                    pw.Text(formatPeso(sale.amountPaid)),
+                  ],
+                ),
+                pw.SizedBox(height: 4),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('Change'),
+                    pw.Text(formatPeso(sale.changeAmount)),
+                  ],
+                ),
+              ],
               pw.SizedBox(height: 16),
               pw.Center(
                 child: pw.Text(
@@ -346,7 +365,8 @@ class ReceiptService {
     final dateFormat = DateFormat('MMM d, yyyy');
     final dateTimeFormat = DateFormat('MMM d, yyyy · h:mm a');
     final generatedAt = DateTime.now();
-    final activeDebts = [...debts]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final activeDebts = [...debts]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final totalRemaining = activeDebts.fold<double>(
       0,
       (sum, debt) => sum + debt.remaining,

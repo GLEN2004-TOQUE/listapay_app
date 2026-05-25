@@ -1731,6 +1731,30 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _amountPaidMeta = const VerificationMeta(
+    'amountPaid',
+  );
+  @override
+  late final GeneratedColumn<double> amountPaid = GeneratedColumn<double>(
+    'amount_paid',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _changeAmountMeta = const VerificationMeta(
+    'changeAmount',
+  );
+  @override
+  late final GeneratedColumn<double> changeAmount = GeneratedColumn<double>(
+    'change_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _paymentMethodMeta = const VerificationMeta(
     'paymentMethod',
   );
@@ -1783,6 +1807,8 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
     customerId,
     userId,
     total,
+    amountPaid,
+    changeAmount,
     paymentMethod,
     status,
     synced,
@@ -1824,6 +1850,21 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
       );
     } else if (isInserting) {
       context.missing(_totalMeta);
+    }
+    if (data.containsKey('amount_paid')) {
+      context.handle(
+        _amountPaidMeta,
+        amountPaid.isAcceptableOrUnknown(data['amount_paid']!, _amountPaidMeta),
+      );
+    }
+    if (data.containsKey('change_amount')) {
+      context.handle(
+        _changeAmountMeta,
+        changeAmount.isAcceptableOrUnknown(
+          data['change_amount']!,
+          _changeAmountMeta,
+        ),
+      );
     }
     if (data.containsKey('payment_method')) {
       context.handle(
@@ -1879,6 +1920,14 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
         DriftSqlType.double,
         data['${effectivePrefix}total'],
       )!,
+      amountPaid: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount_paid'],
+      )!,
+      changeAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}change_amount'],
+      )!,
       paymentMethod: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}payment_method'],
@@ -1909,6 +1958,8 @@ class Sale extends DataClass implements Insertable<Sale> {
   final int? customerId;
   final int userId;
   final double total;
+  final double amountPaid;
+  final double changeAmount;
   final String paymentMethod;
   final String status;
   final bool synced;
@@ -1918,6 +1969,8 @@ class Sale extends DataClass implements Insertable<Sale> {
     this.customerId,
     required this.userId,
     required this.total,
+    required this.amountPaid,
+    required this.changeAmount,
     required this.paymentMethod,
     required this.status,
     required this.synced,
@@ -1932,6 +1985,8 @@ class Sale extends DataClass implements Insertable<Sale> {
     }
     map['user_id'] = Variable<int>(userId);
     map['total'] = Variable<double>(total);
+    map['amount_paid'] = Variable<double>(amountPaid);
+    map['change_amount'] = Variable<double>(changeAmount);
     map['payment_method'] = Variable<String>(paymentMethod);
     map['status'] = Variable<String>(status);
     map['synced'] = Variable<bool>(synced);
@@ -1947,6 +2002,8 @@ class Sale extends DataClass implements Insertable<Sale> {
           : Value(customerId),
       userId: Value(userId),
       total: Value(total),
+      amountPaid: Value(amountPaid),
+      changeAmount: Value(changeAmount),
       paymentMethod: Value(paymentMethod),
       status: Value(status),
       synced: Value(synced),
@@ -1964,6 +2021,8 @@ class Sale extends DataClass implements Insertable<Sale> {
       customerId: serializer.fromJson<int?>(json['customerId']),
       userId: serializer.fromJson<int>(json['userId']),
       total: serializer.fromJson<double>(json['total']),
+      amountPaid: serializer.fromJson<double>(json['amountPaid']),
+      changeAmount: serializer.fromJson<double>(json['changeAmount']),
       paymentMethod: serializer.fromJson<String>(json['paymentMethod']),
       status: serializer.fromJson<String>(json['status']),
       synced: serializer.fromJson<bool>(json['synced']),
@@ -1978,6 +2037,8 @@ class Sale extends DataClass implements Insertable<Sale> {
       'customerId': serializer.toJson<int?>(customerId),
       'userId': serializer.toJson<int>(userId),
       'total': serializer.toJson<double>(total),
+      'amountPaid': serializer.toJson<double>(amountPaid),
+      'changeAmount': serializer.toJson<double>(changeAmount),
       'paymentMethod': serializer.toJson<String>(paymentMethod),
       'status': serializer.toJson<String>(status),
       'synced': serializer.toJson<bool>(synced),
@@ -1990,6 +2051,8 @@ class Sale extends DataClass implements Insertable<Sale> {
     Value<int?> customerId = const Value.absent(),
     int? userId,
     double? total,
+    double? amountPaid,
+    double? changeAmount,
     String? paymentMethod,
     String? status,
     bool? synced,
@@ -1999,6 +2062,8 @@ class Sale extends DataClass implements Insertable<Sale> {
     customerId: customerId.present ? customerId.value : this.customerId,
     userId: userId ?? this.userId,
     total: total ?? this.total,
+    amountPaid: amountPaid ?? this.amountPaid,
+    changeAmount: changeAmount ?? this.changeAmount,
     paymentMethod: paymentMethod ?? this.paymentMethod,
     status: status ?? this.status,
     synced: synced ?? this.synced,
@@ -2012,6 +2077,12 @@ class Sale extends DataClass implements Insertable<Sale> {
           : this.customerId,
       userId: data.userId.present ? data.userId.value : this.userId,
       total: data.total.present ? data.total.value : this.total,
+      amountPaid: data.amountPaid.present
+          ? data.amountPaid.value
+          : this.amountPaid,
+      changeAmount: data.changeAmount.present
+          ? data.changeAmount.value
+          : this.changeAmount,
       paymentMethod: data.paymentMethod.present
           ? data.paymentMethod.value
           : this.paymentMethod,
@@ -2028,6 +2099,8 @@ class Sale extends DataClass implements Insertable<Sale> {
           ..write('customerId: $customerId, ')
           ..write('userId: $userId, ')
           ..write('total: $total, ')
+          ..write('amountPaid: $amountPaid, ')
+          ..write('changeAmount: $changeAmount, ')
           ..write('paymentMethod: $paymentMethod, ')
           ..write('status: $status, ')
           ..write('synced: $synced, ')
@@ -2042,6 +2115,8 @@ class Sale extends DataClass implements Insertable<Sale> {
     customerId,
     userId,
     total,
+    amountPaid,
+    changeAmount,
     paymentMethod,
     status,
     synced,
@@ -2055,6 +2130,8 @@ class Sale extends DataClass implements Insertable<Sale> {
           other.customerId == this.customerId &&
           other.userId == this.userId &&
           other.total == this.total &&
+          other.amountPaid == this.amountPaid &&
+          other.changeAmount == this.changeAmount &&
           other.paymentMethod == this.paymentMethod &&
           other.status == this.status &&
           other.synced == this.synced &&
@@ -2066,6 +2143,8 @@ class SalesCompanion extends UpdateCompanion<Sale> {
   final Value<int?> customerId;
   final Value<int> userId;
   final Value<double> total;
+  final Value<double> amountPaid;
+  final Value<double> changeAmount;
   final Value<String> paymentMethod;
   final Value<String> status;
   final Value<bool> synced;
@@ -2075,6 +2154,8 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     this.customerId = const Value.absent(),
     this.userId = const Value.absent(),
     this.total = const Value.absent(),
+    this.amountPaid = const Value.absent(),
+    this.changeAmount = const Value.absent(),
     this.paymentMethod = const Value.absent(),
     this.status = const Value.absent(),
     this.synced = const Value.absent(),
@@ -2085,6 +2166,8 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     this.customerId = const Value.absent(),
     required int userId,
     required double total,
+    this.amountPaid = const Value.absent(),
+    this.changeAmount = const Value.absent(),
     required String paymentMethod,
     this.status = const Value.absent(),
     this.synced = const Value.absent(),
@@ -2097,6 +2180,8 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     Expression<int>? customerId,
     Expression<int>? userId,
     Expression<double>? total,
+    Expression<double>? amountPaid,
+    Expression<double>? changeAmount,
     Expression<String>? paymentMethod,
     Expression<String>? status,
     Expression<bool>? synced,
@@ -2107,6 +2192,8 @@ class SalesCompanion extends UpdateCompanion<Sale> {
       if (customerId != null) 'customer_id': customerId,
       if (userId != null) 'user_id': userId,
       if (total != null) 'total': total,
+      if (amountPaid != null) 'amount_paid': amountPaid,
+      if (changeAmount != null) 'change_amount': changeAmount,
       if (paymentMethod != null) 'payment_method': paymentMethod,
       if (status != null) 'status': status,
       if (synced != null) 'synced': synced,
@@ -2119,6 +2206,8 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     Value<int?>? customerId,
     Value<int>? userId,
     Value<double>? total,
+    Value<double>? amountPaid,
+    Value<double>? changeAmount,
     Value<String>? paymentMethod,
     Value<String>? status,
     Value<bool>? synced,
@@ -2129,6 +2218,8 @@ class SalesCompanion extends UpdateCompanion<Sale> {
       customerId: customerId ?? this.customerId,
       userId: userId ?? this.userId,
       total: total ?? this.total,
+      amountPaid: amountPaid ?? this.amountPaid,
+      changeAmount: changeAmount ?? this.changeAmount,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       status: status ?? this.status,
       synced: synced ?? this.synced,
@@ -2150,6 +2241,12 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     }
     if (total.present) {
       map['total'] = Variable<double>(total.value);
+    }
+    if (amountPaid.present) {
+      map['amount_paid'] = Variable<double>(amountPaid.value);
+    }
+    if (changeAmount.present) {
+      map['change_amount'] = Variable<double>(changeAmount.value);
     }
     if (paymentMethod.present) {
       map['payment_method'] = Variable<String>(paymentMethod.value);
@@ -2173,6 +2270,8 @@ class SalesCompanion extends UpdateCompanion<Sale> {
           ..write('customerId: $customerId, ')
           ..write('userId: $userId, ')
           ..write('total: $total, ')
+          ..write('amountPaid: $amountPaid, ')
+          ..write('changeAmount: $changeAmount, ')
           ..write('paymentMethod: $paymentMethod, ')
           ..write('status: $status, ')
           ..write('synced: $synced, ')
@@ -5489,6 +5588,8 @@ typedef $$SalesTableCreateCompanionBuilder =
       Value<int?> customerId,
       required int userId,
       required double total,
+      Value<double> amountPaid,
+      Value<double> changeAmount,
       required String paymentMethod,
       Value<String> status,
       Value<bool> synced,
@@ -5500,6 +5601,8 @@ typedef $$SalesTableUpdateCompanionBuilder =
       Value<int?> customerId,
       Value<int> userId,
       Value<double> total,
+      Value<double> amountPaid,
+      Value<double> changeAmount,
       Value<String> paymentMethod,
       Value<String> status,
       Value<bool> synced,
@@ -5531,6 +5634,16 @@ class $$SalesTableFilterComposer extends Composer<_$AppDatabase, $SalesTable> {
 
   ColumnFilters<double> get total => $composableBuilder(
     column: $table.total,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amountPaid => $composableBuilder(
+    column: $table.amountPaid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get changeAmount => $composableBuilder(
+    column: $table.changeAmount,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5584,6 +5697,16 @@ class $$SalesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get amountPaid => $composableBuilder(
+    column: $table.amountPaid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get changeAmount => $composableBuilder(
+    column: $table.changeAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get paymentMethod => $composableBuilder(
     column: $table.paymentMethod,
     builder: (column) => ColumnOrderings(column),
@@ -5627,6 +5750,16 @@ class $$SalesTableAnnotationComposer
 
   GeneratedColumn<double> get total =>
       $composableBuilder(column: $table.total, builder: (column) => column);
+
+  GeneratedColumn<double> get amountPaid => $composableBuilder(
+    column: $table.amountPaid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get changeAmount => $composableBuilder(
+    column: $table.changeAmount,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get paymentMethod => $composableBuilder(
     column: $table.paymentMethod,
@@ -5675,6 +5808,8 @@ class $$SalesTableTableManager
                 Value<int?> customerId = const Value.absent(),
                 Value<int> userId = const Value.absent(),
                 Value<double> total = const Value.absent(),
+                Value<double> amountPaid = const Value.absent(),
+                Value<double> changeAmount = const Value.absent(),
                 Value<String> paymentMethod = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<bool> synced = const Value.absent(),
@@ -5684,6 +5819,8 @@ class $$SalesTableTableManager
                 customerId: customerId,
                 userId: userId,
                 total: total,
+                amountPaid: amountPaid,
+                changeAmount: changeAmount,
                 paymentMethod: paymentMethod,
                 status: status,
                 synced: synced,
@@ -5695,6 +5832,8 @@ class $$SalesTableTableManager
                 Value<int?> customerId = const Value.absent(),
                 required int userId,
                 required double total,
+                Value<double> amountPaid = const Value.absent(),
+                Value<double> changeAmount = const Value.absent(),
                 required String paymentMethod,
                 Value<String> status = const Value.absent(),
                 Value<bool> synced = const Value.absent(),
@@ -5704,6 +5843,8 @@ class $$SalesTableTableManager
                 customerId: customerId,
                 userId: userId,
                 total: total,
+                amountPaid: amountPaid,
+                changeAmount: changeAmount,
                 paymentMethod: paymentMethod,
                 status: status,
                 synced: synced,
