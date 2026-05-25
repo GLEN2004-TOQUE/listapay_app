@@ -89,6 +89,7 @@ class _PosView extends StatelessWidget {
                 ),
             ],
           ),
+          bottomNavigationBar: _buildCheckoutBar(context, state),
           floatingActionButton: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -105,12 +106,7 @@ class _PosView extends StatelessWidget {
               ),
             ],
           ),
-          body: Column(
-            children: [
-              Expanded(child: _buildCartBody(context, state)),
-              _buildCheckoutBar(context, state),
-            ],
-          ),
+          body: _buildCartBody(context, state),
         );
       },
     );

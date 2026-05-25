@@ -59,12 +59,50 @@ class _ReportsScreenState extends State<ReportsScreen> {
             }
 
             final report = snapshot.data!;
-            final hasSales = report.thisMonth.count > 0;
+            final hasSales = report.thisYear.count > 0;
 
             return ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
+                _SectionTitle('Analytics'),
+                if (!hasSales)
+                  const Card(
+                    child: ListTile(
+                      leading: Icon(Icons.query_stats),
+                      title: Text('No earnings data yet'),
+                      subtitle: Text(
+                        'Complete a sale in POS to see daily, weekly, monthly, and yearly analytics.',
+                      ),
+                    ),
+                  )
+                else ...[
+                  _EarningsCard(label: 'Today', stats: report.todayEarnings),
+                  const SizedBox(height: 8),
+                  _EarningsCard(
+                    label: 'This week',
+                    stats: report.thisWeekEarnings,
+                  ),
+                  const SizedBox(height: 8),
+                  _EarningsCard(
+                    label: 'This month',
+                    stats: report.thisMonthEarnings,
+                  ),
+                  const SizedBox(height: 8),
+                  _EarningsCard(
+                    label: 'This year',
+                    stats: report.thisYearEarnings,
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Text(
+                  'Earnings are computed as sales minus product cost using the costs currently saved in Inventory.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 20),
                 _SectionTitle('Sales'),
                 _StatCard(
                   label: 'Today',
@@ -73,9 +111,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
                 const SizedBox(height: 8),
                 _StatCard(
-                  label: 'Last 7 days',
-                  total: report.last7Days.total,
-                  count: report.last7Days.count,
+                  label: 'This week',
+                  total: report.thisWeek.total,
+                  count: report.thisWeek.count,
                 ),
                 const SizedBox(height: 8),
                 _StatCard(
@@ -83,13 +121,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   total: report.thisMonth.total,
                   count: report.thisMonth.count,
                 ),
+                const SizedBox(height: 8),
+                _StatCard(
+                  label: 'This year',
+                  total: report.thisYear.total,
+                  count: report.thisYear.count,
+                ),
                 const SizedBox(height: 20),
                 _SectionTitle('Today by payment'),
                 if (report.paymentBreakdown.isEmpty)
                   const Card(
                     child: ListTile(
                       title: Text('No sales today'),
-                      subtitle: Text('Complete a sale in POS to see breakdown.'),
+                      subtitle: Text(
+                        'Complete a sale in POS to see breakdown.',
+                      ),
                     ),
                   )
                 else
@@ -98,7 +144,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     return Card(
                       child: ListTile(
                         title: Text(method.label),
-                        subtitle: Text('${row.count} transaction${row.count == 1 ? '' : 's'}'),
+                        subtitle: Text(
+                          '${row.count} transaction${row.count == 1 ? '' : 's'}',
+                        ),
                         trailing: Text(
                           formatPeso(row.total),
                           style: const TextStyle(fontWeight: FontWeight.w600),
@@ -135,16 +183,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ),
                   ),
                 ),
-                if (!hasSales) ...[
-                  const SizedBox(height: 24),
-                  Text(
-                    'Historical charts can be added later. All figures come from your local store database.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                  ),
-                ],
                 const SizedBox(height: 24),
               ],
             );
@@ -166,9 +204,9 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -194,11 +232,147 @@ class _StatCard extends StatelessWidget {
         trailing: Text(
           formatPeso(total),
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _EarningsCard extends StatelessWidget {
+  const _EarningsCard({required this.label, required this.stats});
+
+  final String label;
+  final EarningsPeriodStats stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (stats.earnings) {
+      > 0 => AppColors.primary,
+      < 0 => AppColors.error,
+      _ => AppColors.textSecondary,
+    };
+    final icon = switch (stats.earnings) {
+      > 0 => Icons.trending_up,
+      < 0 => Icons.trending_down,
+      _ => Icons.trending_flat,
+    };
+    final status = switch (stats.earnings) {
+      > 0 => 'Earning',
+      < 0 => 'Losing',
+      _ => 'Break-even',
+    };
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 16, color: color),
+                      const SizedBox(width: 4),
+                      Text(
+                        status,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: color,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              formatPeso(stats.earnings),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${stats.count} sale${stats.count == 1 ? '' : 's'} in this period',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _AnalyticsMetric(
+                    label: 'Revenue',
+                    value: formatPeso(stats.revenue),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _AnalyticsMetric(
+                    label: 'Cost',
+                    value: formatPeso(stats.cost),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AnalyticsMetric extends StatelessWidget {
+  const _AnalyticsMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
+      ],
     );
   }
 }
@@ -220,13 +394,13 @@ class _DebtRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = emphasized
         ? Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: valueColor ?? AppColors.primary,
-            )
+            fontWeight: FontWeight.bold,
+            color: valueColor ?? AppColors.primary,
+          )
         : Theme.of(context).textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: valueColor,
-            );
+            fontWeight: FontWeight.w600,
+            color: valueColor,
+          );
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
