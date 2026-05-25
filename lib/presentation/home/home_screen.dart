@@ -13,7 +13,11 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthCubit>().state.user!;
+    final user = context.watch<AuthCubit>().state.user;
+    if (user == null) {
+      return const Scaffold(body: SizedBox.shrink());
+    }
+
     final connectivity = context.read<ConnectivityService>();
 
     return Scaffold(
