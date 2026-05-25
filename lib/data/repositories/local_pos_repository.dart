@@ -32,6 +32,7 @@ class LocalPosRepository implements PosRepository {
     required int userId,
     required List<CartLine> lines,
     required PaymentMethod paymentMethod,
+    double? amountPaid,
     int? customerId,
     DateTime? debtDueDate,
   }) async {
@@ -44,6 +45,24 @@ class LocalPosRepository implements PosRepository {
     }
 
     final total = lines.fold<double>(0, (sum, line) => sum + line.subtotal);
+    if (paymentMethod == PaymentMethod.cash) {
+      if (amountPaid == null || amountPaid <= 0) {
+        throw const PosException('Enter the amount paid by the customer.');
+      }
+      if (amountPaid < total) {
+        throw const PosException('Amount paid is less than the sale total.');
+      }
+    }
+
+    final normalizedAmountPaid = switch (paymentMethod) {
+      PaymentMethod.cash => amountPaid ?? 0,
+      PaymentMethod.utang => 0.0,
+      _ => total,
+    };
+    final changeAmount = paymentMethod == PaymentMethod.cash
+        ? normalizedAmountPaid - total
+        : 0.0;
+
     String? customerName;
     if (customerId != null) {
       final customer = await _customers.getCustomer(customerId);
@@ -75,6 +94,8 @@ class LocalPosRepository implements PosRepository {
               userId: userId,
               customerId: Value(customerId),
               total: total,
+              amountPaid: Value(normalizedAmountPaid),
+              changeAmount: Value(changeAmount),
               paymentMethod: paymentMethod.value,
               synced: const Value(false),
             ),
@@ -129,6 +150,8 @@ class LocalPosRepository implements PosRepository {
     return CompletedSale(
       saleId: saleId,
       total: total,
+      amountPaid: normalizedAmountPaid,
+      changeAmount: changeAmount,
       paymentMethod: paymentMethod,
       lines: lines,
       createdAt: DateTime.now(),
