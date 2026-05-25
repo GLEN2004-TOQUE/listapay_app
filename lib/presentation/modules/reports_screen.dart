@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/core/utils/currency_format.dart';
 import 'package:listapay/core/widgets/empty_state.dart';
+import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/data/services/reports_service.dart';
 import 'package:listapay/domain/entities/payment_method.dart';
 
@@ -56,7 +57,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const SimpleLoading(message: 'Loading reports...');
             }
             if (snapshot.hasError) {
               return RefreshIndicator(

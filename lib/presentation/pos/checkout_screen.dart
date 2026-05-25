@@ -954,7 +954,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   if (_loadingEwallet)
                     const Padding(
                       padding: EdgeInsets.all(24),
-                      child: Center(child: CircularProgressIndicator()),
+                      child: SimpleLoading(
+                        message: 'Loading payment details...',
+                      ),
                     )
                   else
                     PaymentQrPanel(

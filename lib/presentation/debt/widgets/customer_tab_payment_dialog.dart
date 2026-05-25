@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:listapay/core/utils/currency_format.dart';
+import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/domain/repositories/debt_repository.dart';
 
 class CustomerTabPaymentDialog extends StatefulWidget {
@@ -148,10 +149,10 @@ class _CustomerTabPaymentDialogState extends State<CustomerTabPaymentDialog> {
           FilledButton(
             onPressed: _isSaving ? null : _recordPayment,
             child: _isSaving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                ? const BrandedLoadingIndicator(
+                    size: 18,
+                    strokeWidth: 2,
+                    showHalo: false,
                   )
                 : const Text('Record payment'),
           ),
