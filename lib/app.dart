@@ -17,6 +17,7 @@ import 'package:listapay/data/repositories/local_inventory_repository.dart';
 import 'package:listapay/data/repositories/local_pos_repository.dart';
 import 'package:listapay/data/services/connectivity_service.dart';
 import 'package:listapay/data/services/debt_sms_reminder_service.dart';
+import 'package:listapay/data/services/device_role_service.dart';
 import 'package:listapay/data/services/device_tracker_service.dart';
 import 'package:listapay/data/services/notification_service.dart';
 import 'package:listapay/data/services/payment_config_service.dart';
@@ -55,6 +56,7 @@ class _ListaPayAppState extends State<ListaPayApp> {
   late final DebtSmsReminderService _debtSmsReminderService;
   late final StoreSessionService _storeSessionService;
   late final DeviceBindingService _deviceBindingService;
+  late final DeviceRoleService _deviceRoleService;
   late final DeviceTrackerService _deviceTrackerService;
   late final SyncService _syncService;
   late final ReportsService _reportsService;
@@ -91,6 +93,7 @@ class _ListaPayAppState extends State<ListaPayApp> {
     );
     _storeSessionService = StoreSessionService();
     _deviceBindingService = DeviceBindingService();
+    _deviceRoleService = DeviceRoleService();
     _deviceTrackerService = DeviceTrackerService(
       deviceBinding: _deviceBindingService,
       storeSession: _storeSessionService,
@@ -99,7 +102,7 @@ class _ListaPayAppState extends State<ListaPayApp> {
     _syncService = SyncService(_database, _storeSessionService, _connectivity);
     _reportsService = ReportsService(_database);
     _paymentConfigService = PaymentConfigService(_database);
-    _authCubit = AuthCubit(_authRepository);
+    _authCubit = AuthCubit(_authRepository, _deviceRoleService);
     _router = createAppRouter(_authCubit);
     _notificationService.onNavigate = _router.go;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -151,7 +154,11 @@ class _ListaPayAppState extends State<ListaPayApp> {
         return;
       }
 
-      _deviceTrackerService.startConnectivityListener();
+      _deviceTrackerService.startConnectivityListener(
+        onReconnect: () async {
+          await _syncService.syncNow();
+        },
+      );
     }
     _authSubscription = _authCubit.stream.listen((state) async {
       if (state.status == AuthStatus.authenticated) {
@@ -161,6 +168,9 @@ class _ListaPayAppState extends State<ListaPayApp> {
               userId: state.user?.id.toString(),
             ),
           );
+        }
+        if (SupabaseConfig.isConfigured) {
+          unawaited(_syncService.syncNow());
         }
         if (!_debtCheckRan) {
           _debtCheckRan = true;
@@ -266,6 +276,7 @@ class _ListaPayAppState extends State<ListaPayApp> {
         RepositoryProvider<DeviceBindingService>.value(
           value: _deviceBindingService,
         ),
+        RepositoryProvider<DeviceRoleService>.value(value: _deviceRoleService),
         RepositoryProvider<SyncService>.value(value: _syncService),
         RepositoryProvider<ReportsService>.value(value: _reportsService),
         RepositoryProvider<PaymentConfigService>.value(

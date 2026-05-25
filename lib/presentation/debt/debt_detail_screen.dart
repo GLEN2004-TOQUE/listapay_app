@@ -7,7 +7,6 @@ import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/core/utils/currency_format.dart';
 import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/data/services/receipt_service.dart';
-import 'package:listapay/domain/entities/app_user.dart';
 import 'package:listapay/domain/entities/customer_summary.dart';
 import 'package:listapay/domain/entities/debt_record.dart';
 import 'package:listapay/domain/entities/debt_status.dart';
@@ -331,10 +330,9 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMM d, yyyy');
     final dateTimeFormat = DateFormat('MMM d, yyyy • h:mm a');
-    final role = context.watch<AuthCubit>().state.user?.role;
-    final canEdit = role == UserRole.admin || role == UserRole.cashier;
-    final canDelete =
-        role == UserRole.admin && (_debt?.payments.isEmpty ?? false);
+    final user = context.watch<AuthCubit>().state.user;
+    final canEdit = user?.canAccessDebts ?? false;
+    final canDelete = (user?.isAdmin ?? false) && (_debt?.payments.isEmpty ?? false);
 
     return Scaffold(
       appBar: AppBar(
@@ -376,8 +374,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     DateFormat dateFormat,
     DateFormat dateTimeFormat,
   ) {
-    final role = context.watch<AuthCubit>().state.user?.role;
-    final canPay = role == UserRole.admin || role == UserRole.cashier;
+    final canPay = context.watch<AuthCubit>().state.user?.canAccessDebts ?? false;
     final status = debt.displayStatus;
     final statusColor = switch (status) {
       DebtStatus.overdue => AppColors.error,

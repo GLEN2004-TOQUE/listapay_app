@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/core/widgets/empty_state.dart';
 import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/domain/entities/app_user.dart';
 import 'package:listapay/domain/entities/product_category.dart';
 import 'package:listapay/domain/repositories/inventory_repository.dart';
 import 'package:listapay/presentation/auth/auth_cubit.dart';
@@ -37,8 +36,7 @@ class _CategoryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canEdit = context.watch<AuthCubit>().state.user!.role !=
-        UserRole.viewer;
+    final canEdit = context.watch<AuthCubit>().state.user!.canManageInventory;
 
     return BlocConsumer<CategoryListCubit, CategoryListState>(
       listener: (context, state) {

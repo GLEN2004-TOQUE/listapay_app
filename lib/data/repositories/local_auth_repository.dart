@@ -18,36 +18,53 @@ class LocalAuthRepository implements AuthRepository {
 
   static const _sessionUserIdKey = 'session_user_id';
   static String _mustChangePinKey(int userId) => 'must_change_pin_$userId';
+  static const _bootstrapUsers = [
+    (
+      name: 'Admin',
+      email: 'admin@listapay.local',
+      role: 'admin',
+      defaultPin: '1234',
+    ),
+  ];
 
   @override
   Future<void> initialize() async {
-    final count = await _db.select(_db.users).get();
-    if (count.isEmpty) {
+    await _ensureBootstrapUsers();
+    await _flagDefaultPinsIfNeeded();
+  }
+
+  Future<void> _ensureBootstrapUsers() async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final seed in _bootstrapUsers) {
+      final existing =
+          await (_db.select(_db.users)
+                ..where((u) => u.email.equals(seed.email)))
+              .getSingleOrNull();
+      if (existing != null) continue;
+
       final id = await _db.into(_db.users).insert(
             UsersCompanion.insert(
-              name: 'Admin',
-              email: 'admin@listapay.local',
-              role: 'admin',
-              pinHash: BCrypt.hashpw('1234', BCrypt.gensalt()),
+              name: seed.name,
+              email: seed.email,
+              role: seed.role,
+              pinHash: BCrypt.hashpw(seed.defaultPin, BCrypt.gensalt()),
             ),
           );
-      final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_mustChangePinKey(id), true);
-    } else {
-      await _flagDefaultPinIfNeeded();
     }
   }
 
-  Future<void> _flagDefaultPinIfNeeded() async {
-    final admins = await (_db.select(_db.users)
-          ..where((u) => u.role.equals('admin') & u.isActive.equals(true)))
-        .get();
-
+  Future<void> _flagDefaultPinsIfNeeded() async {
     final prefs = await SharedPreferences.getInstance();
-    for (final admin in admins) {
-      if (prefs.getBool(_mustChangePinKey(admin.id)) ?? false) continue;
-      if (BCrypt.checkpw('1234', admin.pinHash)) {
-        await prefs.setBool(_mustChangePinKey(admin.id), true);
+    for (final seed in _bootstrapUsers) {
+      final user =
+          await (_db.select(_db.users)
+                ..where((u) => u.email.equals(seed.email) & u.isActive.equals(true)))
+              .getSingleOrNull();
+      if (user == null) continue;
+      if (prefs.getBool(_mustChangePinKey(user.id)) ?? false) continue;
+      if (BCrypt.checkpw(seed.defaultPin, user.pinHash)) {
+        await prefs.setBool(_mustChangePinKey(user.id), true);
       }
     }
   }
@@ -106,6 +123,49 @@ class LocalAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<AppUser> registerUser({
+    required String name,
+    required UserRole role,
+    required String pin,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      throw const AuthException('Name is required.');
+    }
+
+    final validationError = PinPolicy.validateNewPin(pin);
+    if (validationError != null) {
+      throw AuthException(validationError);
+    }
+
+    final existingPinUser = await _findUserByPin(pin);
+    if (existingPinUser != null) {
+      throw const AuthException(
+        'That PIN is already in use by another account. Choose a different PIN.',
+      );
+    }
+
+    final internalEmail =
+        '${role.name}.${DateTime.now().microsecondsSinceEpoch}@listapay.local';
+    final id = await _db.into(_db.users).insert(
+          UsersCompanion.insert(
+            name: trimmedName,
+            email: internalEmail,
+            role: role.name,
+            pinHash: BCrypt.hashpw(pin, BCrypt.gensalt()),
+          ),
+        );
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_mustChangePinKey(id));
+    await prefs.setInt(_sessionUserIdKey, id);
+
+    final row = await (_db.select(_db.users)..where((u) => u.id.equals(id)))
+        .getSingle();
+    return _mapUser(row);
+  }
+
+  @override
   Future<void> changePin({
     required int userId,
     required String currentPin,
@@ -126,6 +186,12 @@ class LocalAuthRepository implements AuthRepository {
     }
     if (BCrypt.checkpw(newPin, row.pinHash)) {
       throw const AuthException('New PIN must be different from the current PIN.');
+    }
+    final duplicatePinUser = await _findUserByPin(newPin, exceptUserId: userId);
+    if (duplicatePinUser != null) {
+      throw const AuthException(
+        'That PIN is already in use by another account. Choose a different PIN.',
+      );
     }
 
     await (_db.update(_db.users)..where((u) => u.id.equals(userId))).write(
@@ -156,9 +222,23 @@ class LocalAuthRepository implements AuthRepository {
     return switch (role) {
       'admin' => UserRole.admin,
       'cashier' => UserRole.cashier,
+      'inventory' => UserRole.inventory,
       'viewer' => UserRole.viewer,
-      _ => UserRole.cashier,
+      _ => UserRole.viewer,
     };
+  }
+
+  Future<User?> _findUserByPin(String pin, {int? exceptUserId}) async {
+    final users = await (_db.select(_db.users)
+          ..where((u) => u.isActive.equals(true)))
+        .get();
+    for (final user in users) {
+      if (exceptUserId != null && user.id == exceptUserId) continue;
+      if (BCrypt.checkpw(pin, user.pinHash)) {
+        return user;
+      }
+    }
+    return null;
   }
 }
 

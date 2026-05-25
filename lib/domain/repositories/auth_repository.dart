@@ -15,6 +15,11 @@ abstract class AuthRepository {
   Future<AppUser?> getCurrentUser();
   Future<bool> mustChangePinForUser(int userId);
   Future<LoginResult> loginWithPin(String pin);
+  Future<AppUser> registerUser({
+    required String name,
+    required UserRole role,
+    required String pin,
+  });
   Future<void> changePin({
     required int userId,
     required String currentPin,

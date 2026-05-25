@@ -7,7 +7,6 @@ import 'package:listapay/core/utils/currency_format.dart';
 import 'package:listapay/core/widgets/empty_state.dart';
 import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/data/services/receipt_service.dart';
-import 'package:listapay/domain/entities/app_user.dart';
 import 'package:listapay/domain/entities/debt_record.dart';
 import 'package:listapay/domain/repositories/debt_repository.dart';
 import 'package:listapay/presentation/auth/auth_cubit.dart';
@@ -130,8 +129,7 @@ class _DebtView extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context, DebtListState state) {
-    final role = context.watch<AuthCubit>().state.user?.role;
-    final canPay = role == UserRole.admin || role == UserRole.cashier;
+    final canPay = context.watch<AuthCubit>().state.user?.canAccessDebts ?? false;
 
     if (state.isLoading && state.debts.isEmpty) {
       return const SimpleLoading(message: 'Loading debts...');

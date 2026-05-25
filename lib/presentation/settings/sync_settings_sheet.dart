@@ -47,6 +47,7 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
     setState(() => _busy = true);
     final bindingService = context.read<DeviceBindingService>();
     final storeSessionService = context.read<StoreSessionService>();
+    final syncService = context.read<SyncService>();
     try {
       final deviceId = await bindingService.currentDeviceId();
       final session = await storeSessionService.pairWithCode(
@@ -56,7 +57,19 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
       );
       if (!mounted) return;
       setState(() => _session = session);
-      _showMessage('Paired with ${session.storeName}');
+      final result = await syncService.syncNow();
+      if (!mounted) return;
+      if (result.skipped || result.message != null) {
+        _showMessage(
+          'Paired with ${session.storeName}. '
+          '${result.message ?? 'Run Sync now to pull store data.'}',
+        );
+      } else {
+        _showMessage(
+          'Paired with ${session.storeName}. '
+          'Pulled ${result.pulled} store updates.',
+        );
+      }
     } on StoreSessionException catch (e) {
       if (!mounted) return;
       _showMessage(e.message);

@@ -40,15 +40,16 @@ class _InventoryViewState extends State<_InventoryView> {
     super.dispose();
   }
 
-  bool _canEdit(UserRole role) =>
-      role == UserRole.admin || role == UserRole.cashier;
+  bool _canEdit(UserRole role) {
+    return role == UserRole.admin || role == UserRole.inventory;
+  }
 
   bool _canDelete(UserRole role) => role == UserRole.admin;
 
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthCubit>().state.user!;
-    final canEdit = _canEdit(user.role);
+    final canEdit = user.canManageInventory && _canEdit(user.role);
     final canDelete = _canDelete(user.role);
 
     return BlocConsumer<ProductListCubit, ProductListState>(

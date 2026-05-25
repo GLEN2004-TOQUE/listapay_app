@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:listapay/core/router/app_router.dart';
 import 'package:listapay/core/security/pin_policy.dart';
 import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/core/widgets/simple_loading.dart';
+import 'package:listapay/data/services/device_role_service.dart';
 import 'package:listapay/presentation/auth/auth_cubit.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -16,6 +19,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _pinController = TextEditingController();
   bool _obscure = true;
+  Future<DeviceRoleMode>? _deviceModeFuture;
 
   @override
   void dispose() {
@@ -31,6 +35,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _deviceModeFuture ??= context.read<DeviceRoleService>().getMode();
+
     return BlocConsumer<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state.errorMessage != null) {
@@ -53,8 +59,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const SizedBox(height: 32),
                       Image.asset(
-                        'assets/images/LISTAPAY-LOGO.png',
-                        height: 72,
+                        'assets/images/splash_screen.png',
+                        height: 120,
+                        fit: BoxFit.contain,
                         errorBuilder: (_, _, _) => const Icon(
                           Icons.store,
                           size: 56,
@@ -73,6 +80,58 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      FutureBuilder<DeviceRoleMode>(
+                        future: _deviceModeFuture,
+                        builder: (context, snapshot) {
+                          final mode =
+                              snapshot.data ?? DeviceRoleMode.unrestricted;
+                          return Card(
+                            color: AppColors.surface,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(
+                                    Icons.phone_android_outlined,
+                                    color: AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          mode.label,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          mode.description,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color:
+                                                    AppColors.textSecondary,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 32),
                       TextField(
@@ -105,8 +164,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: const Text('Continue'),
                       ),
                       const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: isLoading
+                            ? null
+                            : () => context.push(AppRoutes.register),
+                        child: const Text('Register new account'),
+                      ),
+                      const SizedBox(height: 8),
                       Text(
-                        'After first install you must set a new ${PinPolicy.minLength}-digit PIN.',
+                        'New installs include a bootstrap Admin PIN (1234) for '
+                        'recovery. Cashier and Inventory Staff should register '
+                        'with a valid pairing code from the admin.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textSecondary,

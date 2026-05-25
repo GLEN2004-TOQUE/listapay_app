@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum UserRole { admin, cashier, viewer }
+enum UserRole { admin, cashier, inventory, viewer }
 
 class AppUser extends Equatable {
   const AppUser({
@@ -19,6 +19,12 @@ class AppUser extends Equatable {
 
   bool get isAdmin => role == UserRole.admin;
   bool get canSell => role == UserRole.admin || role == UserRole.cashier;
+  bool get canManageInventory =>
+      role == UserRole.admin || role == UserRole.inventory;
+  bool get canAccessCustomers => isAdmin;
+  bool get canAccessDebts => isAdmin;
+  bool get canAccessReports => isAdmin;
+  bool get canAccessSettings => true;
 
   @override
   List<Object?> get props => [id, name, email, role, isActive];
