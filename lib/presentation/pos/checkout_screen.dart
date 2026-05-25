@@ -10,10 +10,12 @@ import 'package:listapay/data/services/notification_service.dart';
 import 'package:listapay/data/services/payment_config_service.dart';
 import 'package:listapay/data/services/receipt_service.dart';
 import 'package:listapay/domain/entities/completed_sale.dart';
+import 'package:listapay/domain/entities/debt_record.dart';
 import 'package:listapay/domain/entities/ewallet_payment_config.dart';
 import 'package:listapay/domain/entities/customer_summary.dart';
 import 'package:listapay/domain/entities/payment_method.dart';
 import 'package:listapay/domain/repositories/customer_repository.dart';
+import 'package:listapay/domain/repositories/debt_repository.dart';
 import 'package:listapay/domain/repositories/pos_repository.dart';
 import 'package:listapay/presentation/auth/auth_cubit.dart';
 import 'package:listapay/presentation/pos/cart_cubit.dart';
@@ -253,24 +255,395 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void _handleBackNavigation() {
     if (_isProcessing || !mounted) return;
 
-    final router = GoRouter.of(context);
-    if (router.canPop()) {
-      router.pop();
-    } else {
-      router.go(AppRoutes.pos);
-    }
+    GoRouter.of(context).go(AppRoutes.pos);
+  }
+
+  List<DebtRecord> _activeDebtsForCustomer(List<DebtRecord> debts) {
+    final customerId = _selectedCustomer?.id;
+    if (customerId == null) return const [];
+
+    final customerDebts = debts
+        .where((debt) => debt.customerId == customerId && !debt.isFullyPaid)
+        .toList();
+    customerDebts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return customerDebts;
+  }
+
+  double _customerBalance(List<DebtRecord> debts) {
+    return debts.fold<double>(0, (sum, debt) => sum + debt.remaining);
+  }
+
+  Future<void> _showCustomerTabSheet({
+    required CustomerSummary customer,
+    required List<DebtRecord> debts,
+    required double pendingSaleTotal,
+  }) async {
+    final dateFormat = DateFormat('MMM d, yyyy');
+    final dateTimeFormat = DateFormat('MMM d, yyyy • h:mm a');
+    final balance = _customerBalance(debts);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: FractionallySizedBox(
+          heightFactor: 0.9,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${customer.name} tab',
+                  style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (customer.phone != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    customer.phone!,
+                    style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Current unpaid tab'),
+                            Text(
+                              formatPeso(balance),
+                              style: Theme.of(sheetContext).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('After this sale'),
+                            Text(
+                              formatPeso(balance + pendingSaleTotal),
+                              style: Theme.of(sheetContext).textTheme.titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Active utang entries',
+                  style: Theme.of(sheetContext).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (debts.isEmpty)
+                  const Expanded(
+                    child: Center(
+                      child: Text('This customer has no unpaid utang yet.'),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: debts.length,
+                      itemBuilder: (context, index) {
+                        final debt = debts[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Added ${dateTimeFormat.format(debt.createdAt)}',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Due ${dateFormat.format(debt.dueDate)}',
+                                            style: Theme.of(
+                                              sheetContext,
+                                            ).textTheme.bodySmall,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Text(
+                                      formatPeso(debt.remaining),
+                                      style: Theme.of(
+                                        sheetContext,
+                                      ).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: debt.isDueSoon
+                                            ? AppColors.offline
+                                            : AppColors.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('Original'),
+                                    Text(formatPeso(debt.amount)),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('Paid'),
+                                    Text(formatPeso(debt.paidAmount)),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Items',
+                                  style: Theme.of(
+                                    sheetContext,
+                                  ).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                if (debt.items.isEmpty)
+                                  const Text('No item details available.')
+                                else
+                                  ...debt.items.map(
+                                    (item) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 8),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            child: Text(item.productName),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            '${item.qty} x ${formatPeso(item.unitPrice)}',
+                                            style: Theme.of(
+                                              sheetContext,
+                                            ).textTheme.bodySmall,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            formatPeso(item.subtotal),
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomerTabSection({
+    required BuildContext context,
+    required CartState cart,
+  }) {
+    final customer = _selectedCustomer;
+    if (customer == null) return const SizedBox.shrink();
+
+    final dateTimeFormat = DateFormat('MMM d, yyyy • h:mm a');
+
+    return StreamBuilder<List<DebtRecord>>(
+      stream: context.read<DebtRepository>().watchDebts(),
+      builder: (context, snapshot) {
+        final debts = _activeDebtsForCustomer(snapshot.data ?? const []);
+        final currentBalance = _customerBalance(debts);
+        final projectedBalance = currentBalance + cart.total;
+
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: SimpleLoading(message: 'Loading customer tab...'),
+            ),
+          );
+        }
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Current tab',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => _showCustomerTabSheet(
+                        customer: customer,
+                        debts: debts,
+                        pendingSaleTotal: cart.total,
+                      ),
+                      icon: const Icon(Icons.receipt_long_outlined),
+                      label: const Text('View full tab'),
+                    ),
+                  ],
+                ),
+                Text(
+                  debts.isEmpty
+                      ? 'This customer has no unpaid utang yet.'
+                      : 'All unpaid utang for ${customer.name} is shown here before adding this sale.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Current unpaid balance'),
+                    Text(
+                      formatPeso(currentBalance),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('After this sale'),
+                    Text(
+                      formatPeso(projectedBalance),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                if (debts.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Recent unpaid entries',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...debts.take(2).map(
+                    (debt) => Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  dateTimeFormat.format(debt.createdAt),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                formatPeso(debt.remaining),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            debt.items.isEmpty
+                                ? 'No item details available.'
+                                : debt.items
+                                      .map(
+                                        (item) =>
+                                            '${item.qty} x ${item.productName}',
+                                      )
+                                      .join(', '),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartCubit>().state;
     final dateFormat = DateFormat('MMM d, yyyy');
-    final canPop = GoRouter.of(context).canPop();
 
     return PopScope<void>(
-      canPop: !_isProcessing && canPop,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) _handleBackNavigation();
+        if (!didPop && !_isProcessing) _handleBackNavigation();
       },
       child: Scaffold(
         appBar: AppBar(
@@ -393,6 +766,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     trailing: const Icon(Icons.calendar_today),
                     onTap: _isProcessing ? null : _pickDueDate,
                   ),
+                  const SizedBox(height: 8),
+                  _buildCustomerTabSection(context: context, cart: cart),
                 ],
                 const SizedBox(height: 24),
                 ElevatedButton(

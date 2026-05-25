@@ -22,23 +22,33 @@ class PosScreen extends StatelessWidget {
 class _PosView extends StatelessWidget {
   const _PosView();
 
+  void _goBack(BuildContext context) {
+    GoRouter.of(context).go(AppRoutes.home);
+  }
+
   @override
   Widget build(BuildContext context) {
     final canSell = context.watch<AuthCubit>().state.user?.canSell ?? false;
 
     if (!canSell) {
-      return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
+      return BackButtonListener(
+        onBackButtonPressed: () async {
+          _goBack(context);
+          return true;
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => _goBack(context),
+            ),
+            title: const Text('POS'),
           ),
-          title: const Text('POS'),
-        ),
-        body: const EmptyState(
-          icon: Icons.point_of_sale,
-          title: 'View only',
-          subtitle: 'Your role cannot process sales.',
+          body: const EmptyState(
+            icon: Icons.point_of_sale,
+            title: 'View only',
+            subtitle: 'Your role cannot process sales.',
+          ),
         ),
       );
     }
@@ -53,60 +63,66 @@ class _PosView extends StatelessWidget {
         }
       },
       builder: (context, state) {
-        return Scaffold(
-          appBar: AppBar(
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.pop(),
+        return BackButtonListener(
+          onBackButtonPressed: () async {
+            _goBack(context);
+            return true;
+          },
+          child: Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => _goBack(context),
+              ),
+              title: const Text('POS'),
+              actions: [
+                if (!state.isEmpty)
+                  TextButton(
+                    onPressed: () {
+                      showDialog<void>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Clear cart?'),
+                          content: const Text('Remove all items from the cart?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                context.read<CartCubit>().clear();
+                                Navigator.pop(ctx);
+                              },
+                              child: const Text('Clear'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    child: const Text('Clear'),
+                  ),
+              ],
             ),
-            title: const Text('POS'),
-            actions: [
-              if (!state.isEmpty)
-                TextButton(
-                  onPressed: () {
-                    showDialog<void>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Clear cart?'),
-                        content: const Text('Remove all items from the cart?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              context.read<CartCubit>().clear();
-                              Navigator.pop(ctx);
-                            },
-                            child: const Text('Clear'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  child: const Text('Clear'),
+            bottomNavigationBar: _buildCheckoutBar(context, state),
+            floatingActionButton: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'browse',
+                  onPressed: () => context.push(AppRoutes.posProducts),
+                  child: const Icon(Icons.list),
                 ),
-            ],
+                const SizedBox(height: 8),
+                FloatingActionButton(
+                  heroTag: 'scan',
+                  onPressed: () => _scanBarcode(context),
+                  child: const Icon(Icons.qr_code_scanner),
+                ),
+              ],
+            ),
+            body: _buildCartBody(context, state),
           ),
-          bottomNavigationBar: _buildCheckoutBar(context, state),
-          floatingActionButton: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              FloatingActionButton.small(
-                heroTag: 'browse',
-                onPressed: () => context.push(AppRoutes.posProducts),
-                child: const Icon(Icons.list),
-              ),
-              const SizedBox(height: 8),
-              FloatingActionButton(
-                heroTag: 'scan',
-                onPressed: () => _scanBarcode(context),
-                child: const Icon(Icons.qr_code_scanner),
-              ),
-            ],
-          ),
-          body: _buildCartBody(context, state),
         );
       },
     );
@@ -177,7 +193,7 @@ class _PosView extends StatelessWidget {
             ElevatedButton(
               onPressed: state.isEmpty
                   ? null
-                  : () => context.push(AppRoutes.posCheckout),
+                  : () => context.go(AppRoutes.posCheckout),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(140, 48),
               ),
