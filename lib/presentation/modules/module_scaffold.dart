@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:listapay/core/widgets/empty_state.dart';
+import 'package:listapay/core/widgets/simple_loading.dart';
 
 class ModuleScaffold extends StatelessWidget {
   const ModuleScaffold({
@@ -34,13 +35,13 @@ class ModuleScaffold extends StatelessWidget {
       ),
       floatingActionButton: fab,
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SimpleLoading(message: 'Loading...')
           : child ??
-              EmptyState(
-                icon: icon,
-                title: emptyTitle,
-                subtitle: emptySubtitle,
-              ),
+                EmptyState(
+                  icon: icon,
+                  title: emptyTitle,
+                  subtitle: emptySubtitle,
+                ),
     );
   }
 }

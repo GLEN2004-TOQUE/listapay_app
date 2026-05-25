@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:listapay/core/config/supabase_config.dart';
 import 'package:listapay/core/security/device_binding_service.dart';
 import 'package:listapay/core/theme/app_theme.dart';
+import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/data/services/store_session_service.dart';
 import 'package:listapay/data/services/sync_service.dart';
 
@@ -159,10 +160,10 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
               FilledButton.icon(
                 onPressed: _busy ? null : _syncNow,
                 icon: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                    ? const BrandedLoadingIndicator(
+                        size: 18,
+                        strokeWidth: 2,
+                        showHalo: false,
                       )
                     : const Icon(Icons.sync),
                 label: const Text('Sync now'),
@@ -194,10 +195,10 @@ class _SyncSettingsSheetState extends State<SyncSettingsSheet> {
               FilledButton(
                 onPressed: _busy || !configured ? null : _pair,
                 child: _busy
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                    ? const BrandedLoadingIndicator(
+                        size: 20,
+                        strokeWidth: 2,
+                        showHalo: false,
                       )
                     : const Text('Pair device'),
               ),

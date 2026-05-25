@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:listapay/core/utils/phone_format.dart';
+import 'package:listapay/core/widgets/simple_loading.dart';
 import 'package:listapay/data/services/connectivity_service.dart';
 import 'package:listapay/data/services/debt_sms_reminder_service.dart';
 import 'package:listapay/data/services/sms_service.dart';
@@ -123,8 +124,8 @@ class _SmsSettingsSheetState extends State<SmsSettingsSheet> {
       ),
       child: _loading
           ? const SizedBox(
-              height: 120,
-              child: Center(child: CircularProgressIndicator()),
+              height: 140,
+              child: SimpleLoading(message: 'Loading SMS settings...'),
             )
           : SingleChildScrollView(
               child: Column(
