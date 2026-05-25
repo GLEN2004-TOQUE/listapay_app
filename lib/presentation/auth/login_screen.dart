@@ -53,7 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const SizedBox(height: 32),
                       Image.asset(
-                        'assets/images/LISTAPAY-LOGO.png',
+                        'assets/images/new-listapay-logo.png',
                         height: 72,
                         errorBuilder: (_, _, _) => const Icon(
                           Icons.store,
