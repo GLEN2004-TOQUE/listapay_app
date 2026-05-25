@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -310,6 +311,91 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
+  Future<void> _collectWholeTabPayment({
+    required CustomerSummary customer,
+    required List<DebtRecord> debts,
+    required BuildContext sheetContext,
+  }) async {
+    final controller = TextEditingController(
+      text: _customerBalance(debts).toStringAsFixed(2),
+    );
+
+    final amount = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Pay whole tab'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Total tab: ${formatPeso(_customerBalance(debts))}'),
+            const SizedBox(height: 12),
+            const Text(
+              'Payment will be applied to the oldest unpaid utang first.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Amount',
+                prefixText: '₱ ',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final amount = double.tryParse(controller.text);
+              Navigator.pop(dialogContext, amount);
+            },
+            child: const Text('Record payment'),
+          ),
+        ],
+      ),
+    );
+
+    controller.dispose();
+
+    if (amount == null || !mounted) return;
+
+    setState(() => _isProcessing = true);
+    try {
+      await context.read<DebtRepository>().recordCustomerPayment(
+        customerId: customer.id,
+        amount: amount,
+      );
+      if (sheetContext.mounted) {
+        Navigator.pop(sheetContext);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Payment recorded and applied to ${customer.name}\'s oldest unpaid debts.',
+            ),
+          ),
+        );
+      }
+    } on DebtException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
   Future<void> _showCustomerTabSheet({
     required CustomerSummary customer,
     required List<DebtRecord> debts,
@@ -408,6 +494,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               ),
                       icon: const Icon(Icons.picture_as_pdf_outlined),
                       label: const Text('Download PDF'),
+                    ),
+                    FilledButton.icon(
+                      onPressed: _isProcessing
+                          ? null
+                          : () => _collectWholeTabPayment(
+                                customer: customer,
+                                debts: debts,
+                                sheetContext: sheetContext,
+                              ),
+                      icon: const Icon(Icons.payments_outlined),
+                      label: const Text('Pay tab'),
                     ),
                   ],
                 ),

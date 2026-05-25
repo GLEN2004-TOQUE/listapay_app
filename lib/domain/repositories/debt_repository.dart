@@ -22,6 +22,11 @@ abstract class DebtRepository {
     required DateTime dueDate,
   });
 
+  Future<void> recordCustomerPayment({
+    required int customerId,
+    required double amount,
+  });
+
   Future<void> recordPayment({
     required int debtId,
     required double amount,

@@ -134,6 +134,88 @@ class LocalDebtRepository implements DebtRepository {
   }
 
   @override
+  Future<void> recordCustomerPayment({
+    required int customerId,
+    required double amount,
+  }) async {
+    if (amount <= 0) {
+      throw const DebtException('Payment amount must be greater than zero.');
+    }
+
+    await refreshOverdueStatuses();
+
+    final rows =
+        await (_db.select(_db.debts).join([
+                innerJoin(
+                  _db.customers,
+                  _db.customers.id.equalsExp(_db.debts.customerId),
+                ),
+              ])
+              ..where(_db.debts.customerId.equals(customerId))
+              ..orderBy([OrderingTerm.asc(_db.debts.createdAt)]))
+            .get();
+
+    if (rows.isEmpty) {
+      throw const DebtException('No debts found for this customer.');
+    }
+
+    final debts = await Future.wait(rows.map(_mapDebtRow));
+    final activeDebts = debts.where((debt) => !debt.isFullyPaid).toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+    if (activeDebts.isEmpty) {
+      throw const DebtException('This customer has no unpaid debts.');
+    }
+
+    final totalRemaining = activeDebts.fold<double>(
+      0,
+      (sum, debt) => sum + debt.remaining,
+    );
+
+    if (amount > totalRemaining + 0.001) {
+      throw DebtException(
+        'Payment exceeds total remaining balance (${totalRemaining.toStringAsFixed(2)}).',
+      );
+    }
+
+    await _db.transaction(() async {
+      var remainingPayment = amount;
+
+      for (final debt in activeDebts) {
+        if (remainingPayment <= 0.001) break;
+
+        final appliedAmount = debt.remaining < remainingPayment
+            ? debt.remaining
+            : remainingPayment;
+
+        await _db.into(_db.payments).insert(
+          PaymentsCompanion.insert(
+            debtId: debt.id,
+            amount: appliedAmount,
+            synced: const Value(false),
+          ),
+        );
+
+        final newPaid = debt.paidAmount + appliedAmount;
+        final newStatus = newPaid >= debt.amount - 0.001
+            ? 'paid'
+            : debt.dueDate.isBefore(_startOfToday())
+            ? 'overdue'
+            : 'pending';
+
+        await (_db.update(_db.debts)..where((d) => d.id.equals(debt.id))).write(
+          DebtsCompanion(
+            status: Value(newStatus),
+            synced: const Value(false),
+          ),
+        );
+
+        remainingPayment -= appliedAmount;
+      }
+    });
+  }
+
+  @override
   Future<void> recordPayment({
     required int debtId,
     required double amount,
