@@ -75,19 +75,37 @@ class _ReportsScreenState extends State<ReportsScreen> {
             final report = snapshot.data!;
             return TabBarView(
               children: [
-                RefreshIndicator(
-                  onRefresh: _refresh,
-                  child: _ReportsOverviewTab(report: report),
+                _ReportsTabPage(
+                  child: RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: _ReportsOverviewTab(report: report),
+                  ),
                 ),
-                RefreshIndicator(
-                  onRefresh: _refresh,
-                  child: _PurchasesTab(purchases: report.purchaseHistory),
+                _ReportsTabPage(
+                  child: RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: _PurchasesTab(purchases: report.purchaseHistory),
+                  ),
                 ),
               ],
             );
           },
         ),
       ),
+    );
+  }
+}
+
+class _ReportsTabPage extends StatelessWidget {
+  const _ReportsTabPage({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: child,
     );
   }
 }
