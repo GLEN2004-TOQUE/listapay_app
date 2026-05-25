@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:listapay/core/router/app_router.dart';
 import 'package:listapay/core/utils/currency_format.dart';
 import 'package:listapay/core/widgets/empty_state.dart';
@@ -12,18 +12,34 @@ import 'package:listapay/domain/entities/debt_record.dart';
 import 'package:listapay/domain/repositories/debt_repository.dart';
 import 'package:listapay/presentation/auth/auth_cubit.dart';
 import 'package:listapay/presentation/debt/debt_list_cubit.dart';
+import 'package:listapay/presentation/debt/widgets/customer_tab_payment_dialog.dart';
 import 'package:listapay/presentation/debt/widgets/debt_tile.dart';
-import 'package:intl/intl.dart';
 
-class DebtScreen extends StatelessWidget {
+class DebtScreen extends StatefulWidget {
   const DebtScreen({super.key});
 
   @override
+  State<DebtScreen> createState() => _DebtScreenState();
+}
+
+class _DebtScreenState extends State<DebtScreen> {
+  late final DebtListCubit _debtListCubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _debtListCubit = DebtListCubit(context.read<DebtRepository>())..start();
+  }
+
+  @override
+  void dispose() {
+    _debtListCubit.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => DebtListCubit(context.read<DebtRepository>())..start(),
-      child: const _DebtView(),
-    );
+    return BlocProvider.value(value: _debtListCubit, child: const _DebtView());
   }
 }
 
@@ -36,79 +52,25 @@ class _DebtView extends StatelessWidget {
   ) async {
     final repository = context.read<DebtRepository>();
     final messenger = ScaffoldMessenger.of(context);
-    final controller = TextEditingController(
-      text: group.totalRemaining.toStringAsFixed(2),
-    );
-    controller.selection = TextSelection(
-      baseOffset: 0,
-      extentOffset: controller.text.length,
-    );
-
-    final amount = await showDialog<double>(
+    final recorded = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Pay whole tab'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Total tab: ${formatPeso(group.totalRemaining)}'),
-            const SizedBox(height: 12),
-            const Text(
-              'Payment will be applied to the oldest unpaid utang first.',
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Amount',
-                prefixText: '₱ ',
-              ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final amount = double.tryParse(controller.text);
-              Navigator.pop(dialogContext, amount);
-            },
-            child: const Text('Record payment'),
-          ),
-        ],
+      barrierDismissible: false,
+      builder: (_) => CustomerTabPaymentDialog(
+        repository: repository,
+        customerId: group.customerId,
+        totalRemaining: group.totalRemaining,
       ),
     );
 
-    controller.dispose();
+    if (!context.mounted || recorded != true) return;
 
-    if (!context.mounted || amount == null) return;
-
-    try {
-      await repository.recordCustomerPayment(
-        customerId: group.customerId,
-        amount: amount,
-      );
-      if (!context.mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Payment recorded and applied to ${group.customerName}\'s oldest unpaid debts.',
-          ),
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          'Payment recorded and applied to ${group.customerName}\'s oldest unpaid debts.',
         ),
-      );
-    } on DebtException catch (e) {
-      if (!context.mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
-    }
+      ),
+    );
   }
 
   @override
@@ -116,9 +78,9 @@ class _DebtView extends StatelessWidget {
     return BlocConsumer<DebtListCubit, DebtListState>(
       listener: (context, state) {
         if (state.errorMessage != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.errorMessage!)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
         }
       },
       builder: (context, state) {
@@ -326,9 +288,9 @@ class _CustomerDebtGroupCard extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               formatPeso(group.totalRemaining),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -358,10 +320,7 @@ class _CustomerDebtGroupCard extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Items on tab'),
-              Text('${group.totalItems}'),
-            ],
+            children: [const Text('Items on tab'), Text('${group.totalItems}')],
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -456,18 +415,12 @@ class _DebtEntryCard extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Original'),
-                Text(formatPeso(debt.amount)),
-              ],
+              children: [const Text('Original'), Text(formatPeso(debt.amount))],
             ),
             const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Paid'),
-                Text(formatPeso(debt.paidAmount)),
-              ],
+              children: [const Text('Paid'), Text(formatPeso(debt.paidAmount))],
             ),
             const SizedBox(height: 12),
             Text(
@@ -486,7 +439,9 @@ class _DebtEntryCard extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: Text('${item.qty} x ${item.productName}')),
+                      Expanded(
+                        child: Text('${item.qty} x ${item.productName}'),
+                      ),
                       const SizedBox(width: 12),
                       Text(
                         formatPeso(item.subtotal),

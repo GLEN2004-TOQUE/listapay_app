@@ -19,6 +19,7 @@ import 'package:listapay/domain/repositories/customer_repository.dart';
 import 'package:listapay/domain/repositories/debt_repository.dart';
 import 'package:listapay/domain/repositories/pos_repository.dart';
 import 'package:listapay/presentation/auth/auth_cubit.dart';
+import 'package:listapay/presentation/debt/widgets/customer_tab_payment_dialog.dart';
 import 'package:listapay/presentation/pos/cart_cubit.dart';
 import 'package:listapay/presentation/pos/widgets/payment_method_tile.dart';
 import 'package:listapay/presentation/pos/widgets/payment_qr_panel.dart';
@@ -453,86 +454,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }) async {
     final repository = context.read<DebtRepository>();
     final messenger = ScaffoldMessenger.of(context);
-    final controller = TextEditingController(
-      text: _customerBalance(debts).toStringAsFixed(2),
-    );
-    controller.selection = TextSelection(
-      baseOffset: 0,
-      extentOffset: controller.text.length,
-    );
-
-    final amount = await showDialog<double>(
+    final navigator = Navigator.of(context);
+    final recorded = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Pay whole tab'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Total tab: ${formatPeso(_customerBalance(debts))}'),
-            const SizedBox(height: 12),
-            const Text(
-              'Payment will be applied to the oldest unpaid utang first.',
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Amount',
-                prefixText: '₱ ',
-              ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final amount = double.tryParse(controller.text);
-              Navigator.pop(dialogContext, amount);
-            },
-            child: const Text('Record payment'),
-          ),
-        ],
+      barrierDismissible: false,
+      builder: (_) => CustomerTabPaymentDialog(
+        repository: repository,
+        customerId: customer.id,
+        totalRemaining: _customerBalance(debts),
       ),
     );
 
-    controller.dispose();
+    if (!mounted || recorded != true) return;
 
-    if (amount == null || !mounted) return;
+    navigator.pop();
+    if (!mounted) return;
 
-    Navigator.of(context).pop();
-
-    setState(() => _isProcessing = true);
-    try {
-      await repository.recordCustomerPayment(
-        customerId: customer.id,
-        amount: amount,
-      );
-      if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              'Payment recorded and applied to ${customer.name}\'s oldest unpaid debts.',
-            ),
-          ),
-        );
-      }
-    } on DebtException catch (e) {
-      if (mounted) {
-        messenger.showSnackBar(SnackBar(content: Text(e.message)));
-      }
-    } finally {
-      if (mounted) setState(() => _isProcessing = false);
-    }
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          'Payment recorded and applied to ${customer.name}\'s oldest unpaid debts.',
+        ),
+      ),
+    );
   }
 
   Future<void> _showCustomerTabSheet({
@@ -641,9 +585,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       onPressed: _isProcessing
                           ? null
                           : () => _collectWholeTabPayment(
-                                customer: customer,
-                                debts: debts,
-                              ),
+                              customer: customer,
+                              debts: debts,
+                            ),
                       icon: const Icon(Icons.payments_outlined),
                       label: const Text('Pay tab'),
                     ),

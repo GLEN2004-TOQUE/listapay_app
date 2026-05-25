@@ -29,6 +29,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
   bool _isLoading = true;
   bool _isProcessing = false;
   final _paymentController = TextEditingController();
+  final _paymentFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -37,54 +38,75 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
+    final repository = context.read<DebtRepository>();
     setState(() => _isLoading = true);
-    final debt = await context.read<DebtRepository>().getDebt(widget.debtId);
-    if (mounted) {
-      setState(() {
-        _debt = debt;
-        _isLoading = false;
-        if (debt != null && !debt.isFullyPaid) {
-          _paymentController.text = debt.remaining.toStringAsFixed(2);
-        }
-      });
-    }
+    final debt = await repository.getDebt(widget.debtId);
+    if (!mounted) return;
+    setState(() {
+      _debt = debt;
+      _isLoading = false;
+      if (debt != null && !debt.isFullyPaid) {
+        _paymentController.text = debt.remaining.toStringAsFixed(2);
+      }
+    });
   }
 
   @override
   void dispose() {
     _paymentController.dispose();
+    _paymentFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _recordPayment({bool fullAmount = false}) async {
     final debt = _debt;
-    if (debt == null || debt.isFullyPaid) return;
+    if (debt == null || debt.isFullyPaid || _isProcessing) return;
+
+    final repository = context.read<DebtRepository>();
+    final messenger = ScaffoldMessenger.of(context);
+    _paymentFocusNode.unfocus();
 
     final amount = fullAmount
         ? debt.remaining
-        : double.tryParse(_paymentController.text) ?? 0;
+        : double.tryParse(_paymentController.text.trim()) ?? 0;
+
+    if (amount <= 0) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Payment amount must be greater than zero.'),
+        ),
+      );
+      return;
+    }
+
+    if (amount > debt.remaining + 0.001) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Payment exceeds remaining balance (${debt.remaining.toStringAsFixed(2)}).',
+          ),
+        ),
+      );
+      return;
+    }
 
     setState(() => _isProcessing = true);
     try {
       if (fullAmount) {
-        await context.read<DebtRepository>().markAsPaid(debt.id);
+        await repository.markAsPaid(debt.id);
       } else {
-        await context.read<DebtRepository>().recordPayment(
-          debtId: debt.id,
-          amount: amount,
-        );
+        await repository.recordPayment(debtId: debt.id, amount: amount);
       }
+      if (!mounted) return;
       await _load();
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Payment recorded.')));
-      }
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Payment recorded.')),
+      );
     } on DebtException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
+        messenger.showSnackBar(SnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -137,7 +159,9 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     setState(() => _isProcessing = true);
     List<CustomerSummary> customers;
     try {
-      customers = await context.read<CustomerRepository>().getCustomerSummaries();
+      customers = await context
+          .read<CustomerRepository>()
+          .getCustomerSummaries();
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -309,7 +333,8 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     final dateTimeFormat = DateFormat('MMM d, yyyy • h:mm a');
     final role = context.watch<AuthCubit>().state.user?.role;
     final canEdit = role == UserRole.admin || role == UserRole.cashier;
-    final canDelete = role == UserRole.admin && (_debt?.payments.isEmpty ?? false);
+    final canDelete =
+        role == UserRole.admin && (_debt?.payments.isEmpty ?? false);
 
     return Scaffold(
       appBar: AppBar(
@@ -484,6 +509,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
           const SizedBox(height: 8),
           TextField(
             controller: _paymentController,
+            focusNode: _paymentFocusNode,
             decoration: const InputDecoration(
               labelText: 'Amount',
               prefixText: '₱ ',
@@ -492,6 +518,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
             ],
+            onTapOutside: (_) => _paymentFocusNode.unfocus(),
           ),
           const SizedBox(height: 12),
           ElevatedButton(
