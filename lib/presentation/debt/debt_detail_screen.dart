@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:listapay/core/theme/app_theme.dart';
 import 'package:listapay/core/utils/currency_format.dart';
 import 'package:listapay/core/widgets/simple_loading.dart';
+import 'package:listapay/data/services/receipt_service.dart';
 import 'package:listapay/domain/entities/app_user.dart';
 import 'package:listapay/domain/entities/debt_record.dart';
 import 'package:listapay/domain/entities/debt_status.dart';
@@ -82,6 +83,35 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  Future<void> _exportDebtStatement({required bool print}) async {
+    final debt = _debt;
+    if (debt == null) return;
+
+    final receiptService = context.read<ReceiptService>();
+    setState(() => _isProcessing = true);
+    try {
+      if (print) {
+        await receiptService.printDebtStatement(debt);
+      } else {
+        await receiptService.shareDebtStatement(debt);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              print
+                  ? 'Could not open the print dialog.'
+                  : 'Could not generate the PDF file.',
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -189,6 +219,34 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
               ],
             ),
           ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Statement',
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ElevatedButton.icon(
+              onPressed: _isProcessing
+                  ? null
+                  : () => _exportDebtStatement(print: true),
+              icon: const Icon(Icons.print_outlined),
+              label: const Text('Print'),
+            ),
+            OutlinedButton.icon(
+              onPressed: _isProcessing
+                  ? null
+                  : () => _exportDebtStatement(print: false),
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              label: const Text('Download PDF'),
+            ),
+          ],
         ),
         const SizedBox(height: 20),
         Text(
