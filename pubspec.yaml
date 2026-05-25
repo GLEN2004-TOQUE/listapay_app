@@ -56,10 +56,8 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   color: "#FFFFFF"
-  image: assets/images/LISTAPAY-LOGO.png
   android_12:
     color: "#FFFFFF"
-    image: assets/images/LISTAPAY-LOGO.png
 
 flutter:
   uses-material-design: true
