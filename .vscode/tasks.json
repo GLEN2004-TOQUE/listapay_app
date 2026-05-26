@@ -8,7 +8,7 @@
       "args": [
         "build",
         "apk",
-        "--dart-define=SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4eHZwaWNraWZvYmR5andtZnB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NTk3NDUsImV4cCI6MjA5NTEzNTc0NX0.YJW4uPJmNihrxyO-y4G9qONTl-889CAn6BrLGrXahWE",
+        "--dart-define=SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4eHZwaWNraWZvYmR5andtZnB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NTk3NDUsImV4cCI6MjA5NTEzNTc0NX0.YJW4uPJmNihrxyO-y4G9qONTl-889CAn6BrLGrXahWE",
         "--dart-define=DEVICE_TRACKER_URL=http://192.168.1.58:3000"
       ],
       "options": {

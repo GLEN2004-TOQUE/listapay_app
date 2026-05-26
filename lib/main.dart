@@ -14,7 +14,7 @@ Future<void> _initializePlatformServices() async {
   if (!SupabaseConfig.isConfigured) {
     debugPrint(
       'ListaPay: Supabase not configured — cloud sync disabled. '
-      'Pass --dart-define=SUPABASE_ANON_KEY=... to enable.',
+      'Provide a valid SUPABASE_ANON_KEY to enable it.',
     );
     return;
   }

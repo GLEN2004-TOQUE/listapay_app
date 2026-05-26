@@ -128,10 +128,10 @@ class SettingsScreen extends StatelessWidget {
                       builder: (context, snapshot) {
                         final session = snapshot.data;
                         final subtitle = !SupabaseConfig.isConfigured
-                            ? 'Cloud sync disabled on this build'
+                            ? 'Cloud sync unavailable'
                             : session != null
                             ? 'Paired with ${session.storeName}'
-                            : 'Not paired yet — tap to connect';
+                            : 'Not paired yet — tap to create or connect';
                         return Text(
                           subtitle,
                         );
