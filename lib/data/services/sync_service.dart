@@ -1,7 +1,8 @@
 import 'package:drift/drift.dart';
-import 'package:listapay/data/database/app_database.dart';
-import 'package:listapay/data/services/connectivity_service.dart';
-import 'package:listapay/data/services/store_session_service.dart';
+import 'package:ListaPay/core/config/supabase_config.dart';
+import 'package:ListaPay/data/database/app_database.dart';
+import 'package:ListaPay/data/services/connectivity_service.dart';
+import 'package:ListaPay/data/services/store_session_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SyncResult {
@@ -35,13 +36,23 @@ class SyncService {
   SupabaseClient get _client => Supabase.instance.client;
 
   Future<SyncResult> syncNow() async {
+    if (!SupabaseConfig.isConfigured) {
+      return const SyncResult(
+        skipped: true,
+        message: 'Cloud sync is disabled on this build. Run the app with Supabase configured first.',
+      );
+    }
+
     if (!await _connectivity.isOnline()) {
       return const SyncResult(skipped: true, message: 'Offline');
     }
 
     final session = await _storeSession.getSession();
     if (session == null) {
-      return const SyncResult(skipped: true, message: 'Not paired to a store');
+      return const SyncResult(
+        skipped: true,
+        message: 'This device is not paired yet. Open Settings -> Cloud sync and enter the store pairing code.',
+      );
     }
 
     await _storeSession.ensureSupabaseAuth();

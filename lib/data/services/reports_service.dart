@@ -1,5 +1,6 @@
-import 'package:listapay/data/database/app_database.dart';
-import 'package:listapay/domain/entities/debt_status.dart';
+import 'package:ListaPay/data/database/app_database.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/domain/entities/debt_status.dart';
 
 class SalesPeriodStats {
   const SalesPeriodStats({required this.total, required this.count});
@@ -109,13 +110,13 @@ class ReportsService {
   final AppDatabase _db;
 
   Future<StoreReportSummary> loadSummary() async {
-    final now = DateTime.now();
-    final startOfToday = DateTime(now.year, now.month, now.day);
+    final now = PhTime.now();
+    final startOfToday = PhTime.today();
     final startOfWeek = startOfToday.subtract(
       Duration(days: now.weekday - DateTime.monday),
     );
-    final startOfMonth = DateTime(now.year, now.month, 1);
-    final startOfYear = DateTime(now.year, 1, 1);
+    final startOfMonth = PhTime.startOfDay(DateTime(now.year, now.month, 1));
+    final startOfYear = PhTime.startOfDay(DateTime(now.year, 1, 1));
 
     final sales = await _db.select(_db.sales).get();
     final saleItems = await _db.select(_db.saleItems).get();
@@ -150,8 +151,9 @@ class ReportsService {
     }
 
     bool isWithin(DateTime createdAt, DateTime start, {DateTime? end}) {
-      if (createdAt.isBefore(start)) return false;
-      if (end != null && !createdAt.isBefore(end)) return false;
+      final created = PhTime.toDateTime(createdAt);
+      if (created.isBefore(start)) return false;
+      if (end != null && !created.isBefore(end)) return false;
       return true;
     }
 
@@ -206,7 +208,7 @@ class ReportsService {
 
     final breakdownMap = <String, ({double total, int count})>{};
     for (final sale in sales.where(
-      (s) => !s.createdAt.isBefore(startOfToday),
+      (s) => !PhTime.toDateTime(s.createdAt).isBefore(startOfToday),
     )) {
       final entry = breakdownMap[sale.paymentMethod] ?? (total: 0.0, count: 0);
       breakdownMap[sale.paymentMethod] = (
@@ -259,7 +261,7 @@ class ReportsService {
     var outstanding = 0.0;
     var activeCount = 0;
     var overdueCount = 0;
-    final todayDate = DateTime(now.year, now.month, now.day);
+    final todayDate = PhTime.today();
 
     for (final debt in debts) {
       if (debt.status == DebtStatus.paid.value) continue;
@@ -271,11 +273,7 @@ class ReportsService {
       activeCount++;
       outstanding += remaining;
 
-      final dueDay = DateTime(
-        debt.dueDate.year,
-        debt.dueDate.month,
-        debt.dueDate.day,
-      );
+      final dueDay = PhTime.startOfDay(debt.dueDate);
       if (dueDay.isBefore(todayDate)) overdueCount++;
     }
 

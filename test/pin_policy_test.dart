@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:listapay/core/security/pin_policy.dart';
+import 'package:ListaPay/core/security/pin_policy.dart';
 
 void main() {
   group('PinPolicy', () {

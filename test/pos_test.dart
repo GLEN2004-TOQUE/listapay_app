@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:listapay/domain/entities/cart_line.dart';
-import 'package:listapay/domain/entities/payment_method.dart';
+import 'package:ListaPay/domain/entities/cart_line.dart';
+import 'package:ListaPay/domain/entities/payment_method.dart';
 
 void main() {
   test('CartLine subtotal is price times qty', () {

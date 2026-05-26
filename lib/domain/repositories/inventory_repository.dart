@@ -1,5 +1,5 @@
-import 'package:listapay/domain/entities/product_category.dart';
-import 'package:listapay/domain/entities/product_item.dart';
+import 'package:ListaPay/domain/entities/product_category.dart';
+import 'package:ListaPay/domain/entities/product_item.dart';
 
 class InventoryException implements Exception {
   const InventoryException(this.message);

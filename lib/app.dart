@@ -3,38 +3,41 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listapay/core/config/device_tracker_config.dart';
-import 'package:listapay/core/config/supabase_config.dart';
-import 'package:listapay/core/router/app_router.dart';
-import 'package:listapay/core/security/device_binding_service.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/presentation/security/device_blocked_screen.dart';
-import 'package:listapay/data/database/app_database.dart';
-import 'package:listapay/data/repositories/local_auth_repository.dart';
-import 'package:listapay/data/repositories/local_customer_repository.dart';
-import 'package:listapay/data/repositories/local_debt_repository.dart';
-import 'package:listapay/data/repositories/local_inventory_repository.dart';
-import 'package:listapay/data/repositories/local_pos_repository.dart';
-import 'package:listapay/data/services/connectivity_service.dart';
-import 'package:listapay/data/services/debt_sms_reminder_service.dart';
-import 'package:listapay/data/services/device_tracker_service.dart';
-import 'package:listapay/data/services/notification_service.dart';
-import 'package:listapay/data/services/payment_config_service.dart';
-import 'package:listapay/data/services/receipt_service.dart';
-import 'package:listapay/data/services/reports_service.dart';
-import 'package:listapay/data/services/sms_service.dart';
-import 'package:listapay/data/services/store_session_service.dart';
-import 'package:listapay/data/services/sync_service.dart';
-import 'package:listapay/domain/repositories/auth_repository.dart';
-import 'package:listapay/domain/repositories/customer_repository.dart';
-import 'package:listapay/domain/repositories/debt_repository.dart';
-import 'package:listapay/domain/repositories/inventory_repository.dart';
-import 'package:listapay/domain/repositories/pos_repository.dart';
-import 'package:listapay/presentation/auth/auth_cubit.dart';
-import 'package:listapay/presentation/splash/splash_screen.dart';
+import 'package:ListaPay/core/config/device_tracker_config.dart';
+import 'package:ListaPay/core/config/supabase_config.dart';
+import 'package:ListaPay/core/router/app_router.dart';
+import 'package:ListaPay/core/security/device_binding_service.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/presentation/security/device_blocked_screen.dart';
+import 'package:ListaPay/data/database/app_database.dart';
+import 'package:ListaPay/data/repositories/local_auth_repository.dart';
+import 'package:ListaPay/data/repositories/local_customer_repository.dart';
+import 'package:ListaPay/data/repositories/local_debt_repository.dart';
+import 'package:ListaPay/data/repositories/local_inventory_repository.dart';
+import 'package:ListaPay/data/repositories/local_pos_repository.dart';
+import 'package:ListaPay/data/services/connectivity_service.dart';
+import 'package:ListaPay/data/services/debt_sms_reminder_service.dart';
+import 'package:ListaPay/data/services/device_role_service.dart';
+import 'package:ListaPay/data/services/device_tracker_service.dart';
+import 'package:ListaPay/data/services/notification_service.dart';
+import 'package:ListaPay/data/services/payment_config_service.dart';
+import 'package:ListaPay/data/services/receipt_service.dart';
+import 'package:ListaPay/data/services/reports_service.dart';
+import 'package:ListaPay/data/services/sms_service.dart';
+import 'package:ListaPay/data/services/store_session_service.dart';
+import 'package:ListaPay/data/services/sync_service.dart';
+import 'package:ListaPay/domain/repositories/auth_repository.dart';
+import 'package:ListaPay/domain/repositories/customer_repository.dart';
+import 'package:ListaPay/domain/repositories/debt_repository.dart';
+import 'package:ListaPay/domain/repositories/inventory_repository.dart';
+import 'package:ListaPay/domain/repositories/pos_repository.dart';
+import 'package:ListaPay/presentation/auth/auth_cubit.dart';
+import 'package:ListaPay/presentation/splash/splash_screen.dart';
 
 class ListaPayApp extends StatefulWidget {
-  const ListaPayApp({super.key});
+  const ListaPayApp({super.key, required this.platformInitialization});
+
+  final Future<void> platformInitialization;
 
   @override
   State<ListaPayApp> createState() => _ListaPayAppState();
@@ -53,6 +56,7 @@ class _ListaPayAppState extends State<ListaPayApp> {
   late final DebtSmsReminderService _debtSmsReminderService;
   late final StoreSessionService _storeSessionService;
   late final DeviceBindingService _deviceBindingService;
+  late final DeviceRoleService _deviceRoleService;
   late final DeviceTrackerService _deviceTrackerService;
   late final SyncService _syncService;
   late final ReportsService _reportsService;
@@ -62,6 +66,7 @@ class _ListaPayAppState extends State<ListaPayApp> {
   late final GoRouter _router;
   StreamSubscription<AuthState>? _authSubscription;
   bool _debtCheckRan = false;
+  bool _bootstrapStarted = false;
   bool _deviceBindingChecked = false;
   bool _deviceBindingBlocked = false;
   String? _deviceBindingMessage;
@@ -88,6 +93,7 @@ class _ListaPayAppState extends State<ListaPayApp> {
     );
     _storeSessionService = StoreSessionService();
     _deviceBindingService = DeviceBindingService();
+    _deviceRoleService = DeviceRoleService();
     _deviceTrackerService = DeviceTrackerService(
       deviceBinding: _deviceBindingService,
       storeSession: _storeSessionService,
@@ -96,13 +102,26 @@ class _ListaPayAppState extends State<ListaPayApp> {
     _syncService = SyncService(_database, _storeSessionService, _connectivity);
     _reportsService = ReportsService(_database);
     _paymentConfigService = PaymentConfigService(_database);
-    _authCubit = AuthCubit(_authRepository);
+    _authCubit = AuthCubit(_authRepository, _deviceRoleService);
     _router = createAppRouter(_authCubit);
     _notificationService.onNavigate = _router.go;
-    _bootstrap();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_bootstrap());
+      }
+    });
   }
 
   Future<void> _bootstrap() async {
+    if (_bootstrapStarted) return;
+    _bootstrapStarted = true;
+
+    final localInitialization = Future.wait<void>([
+      _authRepository.initialize(),
+      _inventoryRepository.initialize(),
+      widget.platformInitialization,
+    ]);
+
     final binding = await _deviceBindingService.verifyOrBind();
     if (!binding.isAllowed) {
       if (mounted) {
@@ -117,6 +136,8 @@ class _ListaPayAppState extends State<ListaPayApp> {
       }
       return;
     }
+
+    await localInitialization;
 
     if (DeviceTrackerConfig.isConfigured) {
       final trackerResult = await _deviceTrackerService.registerDevice();
@@ -133,11 +154,12 @@ class _ListaPayAppState extends State<ListaPayApp> {
         return;
       }
 
-      _deviceTrackerService.startConnectivityListener();
+      _deviceTrackerService.startConnectivityListener(
+        onReconnect: () async {
+          await _syncService.syncNow();
+        },
+      );
     }
-
-    await _authRepository.initialize();
-    await _inventoryRepository.initialize();
     _authSubscription = _authCubit.stream.listen((state) async {
       if (state.status == AuthStatus.authenticated) {
         if (DeviceTrackerConfig.isConfigured) {
@@ -146,6 +168,9 @@ class _ListaPayAppState extends State<ListaPayApp> {
               userId: state.user?.id.toString(),
             ),
           );
+        }
+        if (SupabaseConfig.isConfigured) {
+          unawaited(_syncService.syncNow());
         }
         if (!_debtCheckRan) {
           _debtCheckRan = true;
@@ -185,6 +210,28 @@ class _ListaPayAppState extends State<ListaPayApp> {
 
   @override
   Widget build(BuildContext context) {
+    final rootChild = _buildRootApp();
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 320),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) =>
+          FadeTransition(opacity: animation, child: child),
+      child: KeyedSubtree(
+        key: ValueKey<String>(
+          _deviceBindingBlocked
+              ? 'blocked'
+              : _deviceBindingChecked
+              ? 'ready'
+              : 'boot',
+        ),
+        child: rootChild,
+      ),
+    );
+  }
+
+  Widget _buildRootApp() {
     if (_deviceBindingBlocked) {
       return MaterialApp(
         title: 'ListaPay',
@@ -229,6 +276,7 @@ class _ListaPayAppState extends State<ListaPayApp> {
         RepositoryProvider<DeviceBindingService>.value(
           value: _deviceBindingService,
         ),
+        RepositoryProvider<DeviceRoleService>.value(value: _deviceRoleService),
         RepositoryProvider<SyncService>.value(value: _syncService),
         RepositoryProvider<ReportsService>.value(value: _reportsService),
         RepositoryProvider<PaymentConfigService>.value(

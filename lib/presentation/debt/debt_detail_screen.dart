@@ -3,17 +3,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/data/services/receipt_service.dart';
-import 'package:listapay/domain/entities/app_user.dart';
-import 'package:listapay/domain/entities/customer_summary.dart';
-import 'package:listapay/domain/entities/debt_record.dart';
-import 'package:listapay/domain/entities/debt_status.dart';
-import 'package:listapay/domain/repositories/customer_repository.dart';
-import 'package:listapay/domain/repositories/debt_repository.dart';
-import 'package:listapay/presentation/auth/auth_cubit.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/data/services/receipt_service.dart';
+import 'package:ListaPay/domain/entities/customer_summary.dart';
+import 'package:ListaPay/domain/entities/debt_record.dart';
+import 'package:ListaPay/domain/entities/debt_status.dart';
+import 'package:ListaPay/domain/repositories/customer_repository.dart';
+import 'package:ListaPay/domain/repositories/debt_repository.dart';
+import 'package:ListaPay/presentation/auth/auth_cubit.dart';
 
 class DebtDetailScreen extends StatefulWidget {
   const DebtDetailScreen({super.key, required this.debtId});
@@ -176,11 +176,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
 
     var selectedCustomer =
         _findCustomerSummary(customers, debt.customerId) ?? customers.first;
-    var selectedDueDate = DateTime(
-      debt.dueDate.year,
-      debt.dueDate.month,
-      debt.dueDate.day,
-    );
+    DateTime selectedDueDate = PhTime.startOfDay(debt.dueDate);
     final dateFormat = DateFormat('MMM d, yyyy');
 
     final saved = await showDialog<bool>(
@@ -191,16 +187,12 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
             final picked = await showDatePicker(
               context: dialogContext,
               initialDate: selectedDueDate,
-              firstDate: DateTime.now().subtract(const Duration(days: 3650)),
-              lastDate: DateTime.now().add(const Duration(days: 3650)),
+              firstDate: PhTime.today().subtract(const Duration(days: 3650)),
+              lastDate: PhTime.today().add(const Duration(days: 3650)),
             );
             if (picked != null) {
               setDialogState(() {
-                selectedDueDate = DateTime(
-                  picked.year,
-                  picked.month,
-                  picked.day,
-                );
+                selectedDueDate = PhTime.startOfDay(picked);
               });
             }
           }
@@ -234,7 +226,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Due date'),
-                  subtitle: Text(dateFormat.format(selectedDueDate)),
+                  subtitle: Text(PhTime.format(dateFormat, selectedDueDate)),
                   trailing: const Icon(Icons.calendar_today),
                   onTap: pickDueDate,
                 ),
@@ -331,10 +323,9 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMM d, yyyy');
     final dateTimeFormat = DateFormat('MMM d, yyyy • h:mm a');
-    final role = context.watch<AuthCubit>().state.user?.role;
-    final canEdit = role == UserRole.admin || role == UserRole.cashier;
-    final canDelete =
-        role == UserRole.admin && (_debt?.payments.isEmpty ?? false);
+    final user = context.watch<AuthCubit>().state.user;
+    final canEdit = user?.canAccessDebts ?? false;
+    final canDelete = (user?.isAdmin ?? false) && (_debt?.payments.isEmpty ?? false);
 
     return Scaffold(
       appBar: AppBar(
@@ -376,8 +367,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     DateFormat dateFormat,
     DateFormat dateTimeFormat,
   ) {
-    final role = context.watch<AuthCubit>().state.user?.role;
-    final canPay = role == UserRole.admin || role == UserRole.cashier;
+    final canPay = context.watch<AuthCubit>().state.user?.canAccessDebts ?? false;
     final status = debt.displayStatus;
     final statusColor = switch (status) {
       DebtStatus.overdue => AppColors.error,
@@ -438,8 +428,10 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text('Created: ${dateTimeFormat.format(debt.createdAt)}'),
-                Text('Due: ${dateFormat.format(debt.dueDate)}'),
+                Text(
+                  'Created: ${PhTime.format(dateTimeFormat, debt.createdAt)}',
+                ),
+                Text('Due: ${PhTime.format(dateFormat, debt.dueDate)}'),
                 Text('Status: ${status.label}'),
               ],
             ),
@@ -549,7 +541,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
                 title: Text(formatPeso(p.amount)),
-                subtitle: Text(dateFormat.format(p.paidAt)),
+                subtitle: Text(PhTime.format(dateTimeFormat, p.paidAt)),
                 leading: const Icon(Icons.payments_outlined),
               ),
             ),

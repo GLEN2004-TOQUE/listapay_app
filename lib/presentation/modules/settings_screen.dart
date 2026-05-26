@@ -1,27 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listapay/core/router/app_router.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/data/services/connectivity_service.dart';
-import 'package:listapay/data/services/debt_sms_reminder_service.dart';
-import 'package:listapay/data/services/notification_service.dart';
-import 'package:listapay/data/services/sms_service.dart';
-import 'package:listapay/data/services/store_session_service.dart';
-import 'package:listapay/data/services/sync_service.dart';
-import 'package:listapay/presentation/modules/module_scaffold.dart';
-import 'package:listapay/presentation/settings/payment_settings_sheet.dart';
-import 'package:listapay/presentation/settings/sms_settings_sheet.dart';
-import 'package:listapay/presentation/settings/sync_settings_sheet.dart';
+import 'package:ListaPay/core/config/supabase_config.dart';
+import 'package:ListaPay/core/router/app_router.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/data/services/connectivity_service.dart';
+import 'package:ListaPay/data/services/debt_sms_reminder_service.dart';
+import 'package:ListaPay/data/services/device_role_service.dart';
+import 'package:ListaPay/data/services/notification_service.dart';
+import 'package:ListaPay/data/services/sms_service.dart';
+import 'package:ListaPay/data/services/store_session_service.dart';
+import 'package:ListaPay/data/services/sync_service.dart';
+import 'package:ListaPay/presentation/auth/auth_cubit.dart';
+import 'package:ListaPay/presentation/modules/module_scaffold.dart';
+import 'package:ListaPay/presentation/settings/device_mode_sheet.dart';
+import 'package:ListaPay/presentation/settings/payment_settings_sheet.dart';
+import 'package:ListaPay/presentation/settings/sms_settings_sheet.dart';
+import 'package:ListaPay/presentation/settings/sync_settings_sheet.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthCubit>().state.user!;
+    final isAdmin = user.isAdmin;
     final connectivity = context.read<ConnectivityService>();
     final notifications = context.read<NotificationService>();
     final sms = context.read<SmsService>();
+    final deviceRole = context.read<DeviceRoleService>();
     final storeSession = context.read<StoreSessionService>();
     final sync = context.read<SyncService>();
 
@@ -59,71 +66,87 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 ListTile(
                   leading: const Icon(Icons.pin_outlined),
-                  title: const Text('Change admin PIN'),
+                  title: const Text('Change PIN'),
                   subtitle: const Text('Update your sign-in PIN on this device'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push(AppRoutes.changePin, extra: true),
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.qr_code_2),
-                  title: const Text('Payment methods'),
-                  subtitle: const Text('GCash & Maya QR codes and account numbers'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (_) => const PaymentSettingsSheet(),
-                    );
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.sms_outlined),
-                  title: const Text('Semaphore SMS'),
-                  subtitle: FutureBuilder<bool>(
-                    future: sms.hasApiKey(),
+                  leading: const Icon(Icons.phone_android_outlined),
+                  title: const Text('Device mode'),
+                  subtitle: FutureBuilder<DeviceRoleMode>(
+                    future: deviceRole.getMode(),
                     builder: (context, snapshot) {
-                      final configured = snapshot.data ?? false;
+                      final mode = snapshot.data ?? DeviceRoleMode.unrestricted;
                       return Text(
-                        configured
-                            ? 'API key configured'
-                            : 'Set API key for debt SMS',
+                        isAdmin
+                            ? mode.description
+                            : '${mode.label}. Only admins can change this.',
                       );
                     },
                   ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    showModalBottomSheet<void>(
+                  trailing: Icon(
+                    isAdmin ? Icons.chevron_right : Icons.lock_outline,
+                  ),
+                  onTap: () async {
+                    if (!isAdmin) {
+                      final mode = await deviceRole.getMode();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '${mode.label} is active on this phone. Ask an admin to change it.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    final selected = await showModalBottomSheet<DeviceRoleMode>(
                       context: context,
                       isScrollControlled: true,
-                      builder: (_) => const SmsSettingsSheet(),
+                      builder: (_) => const DeviceModeSheet(),
+                    );
+                    if (!context.mounted || selected == null) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Device mode updated to ${selected.label.toLowerCase()}.',
+                        ),
+                      ),
                     );
                   },
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.cloud_sync_outlined),
-                  title: const Text('Cloud sync'),
-                  subtitle: FutureBuilder<bool>(
-                    future: storeSession.isPaired(),
-                    builder: (context, snapshot) {
-                      final paired = snapshot.data ?? false;
-                      return Text(
-                        paired ? 'Paired — tap to sync or manage' : 'Not paired — tap to connect',
+                if (isAdmin) ...[
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.cloud_sync_outlined),
+                    title: const Text('Cloud sync'),
+                    subtitle: FutureBuilder<StoreSession?>(
+                      future: storeSession.getSession(),
+                      builder: (context, snapshot) {
+                        final session = snapshot.data;
+                        final subtitle = !SupabaseConfig.isConfigured
+                            ? 'Cloud sync unavailable'
+                            : session != null
+                            ? 'Paired with ${session.storeName}'
+                            : 'Not paired yet — tap to create or connect';
+                        return Text(
+                          subtitle,
+                        );
+                      },
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (_) => const SyncSettingsSheet(),
                       );
                     },
                   ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (_) => const SyncSettingsSheet(),
-                    );
-                  },
-                ),
+                ],
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.sync),
@@ -141,40 +164,80 @@ class SettingsScreen extends StatelessWidget {
                     );
                   },
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.notifications_active_outlined),
-                  title: const Text('Test notification'),
-                  onTap: () async {
-                    await notifications.showTestNotification();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Test notification sent.')),
+                if (isAdmin) ...[
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.qr_code_2),
+                    title: const Text('Payment methods'),
+                    subtitle: const Text(
+                      'GCash & Maya QR codes and account numbers',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (_) => const PaymentSettingsSheet(),
                       );
-                    }
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.account_balance_wallet_outlined),
-                  title: const Text('Check debts now'),
-                  subtitle: const Text('Local alerts + SMS if online'),
-                  onTap: () async {
-                    final reminders = context.read<DebtSmsReminderService>();
-                    await notifications.runDebtChecks();
-                    final result = await reminders.processReminders();
-                    await reminders.processRetryQueue();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Done. SMS sent: ${result.sent}',
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.sms_outlined),
+                    title: const Text('Semaphore SMS'),
+                    subtitle: FutureBuilder<bool>(
+                      future: sms.hasApiKey(),
+                      builder: (context, snapshot) {
+                        final configured = snapshot.data ?? false;
+                        return Text(
+                          configured
+                              ? 'API key configured'
+                              : 'Set API key for debt SMS',
+                        );
+                      },
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (_) => const SmsSettingsSheet(),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.notifications_active_outlined),
+                    title: const Text('Test notification'),
+                    onTap: () async {
+                      await notifications.showTestNotification();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Test notification sent.')),
+                        );
+                      }
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.account_balance_wallet_outlined),
+                    title: const Text('Check debts now'),
+                    subtitle: const Text('Local alerts + SMS if online'),
+                    onTap: () async {
+                      final reminders = context.read<DebtSmsReminderService>();
+                      await notifications.runDebtChecks();
+                      final result = await reminders.processReminders();
+                      await reminders.processRetryQueue();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Done. SMS sent: ${result.sent}'),
                           ),
-                        ),
-                      );
-                    }
-                  },
-                ),
+                        );
+                      }
+                    },
+                  ),
+                ],
               ],
             ),
           ),

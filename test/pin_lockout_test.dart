@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:listapay/core/security/pin_lockout_service.dart';
+import 'package:ListaPay/core/security/pin_lockout_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

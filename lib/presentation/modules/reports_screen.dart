@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/core/widgets/empty_state.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/data/services/reports_service.dart';
-import 'package:listapay/domain/entities/payment_method.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/core/widgets/empty_state.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/data/services/reports_service.dart';
+import 'package:ListaPay/domain/entities/payment_method.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -292,7 +293,7 @@ class _PurchasesTab extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            dateFormat.format(purchase.createdAt),
+                            PhTime.format(dateFormat, purchase.createdAt),
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: AppColors.textSecondary),
                           ),

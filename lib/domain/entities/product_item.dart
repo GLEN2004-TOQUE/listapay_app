@@ -25,7 +25,9 @@ class ProductItem extends Equatable {
   final int stockQty;
   final int lowStockThreshold;
 
-  bool get isLowStock => stockQty <= lowStockThreshold;
+  bool get isOutOfStock => stockQty <= 0;
+
+  bool get isLowStock => !isOutOfStock && stockQty <= lowStockThreshold;
 
   @override
   List<Object?> get props => [

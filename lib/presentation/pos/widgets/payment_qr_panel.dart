@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/domain/entities/ewallet_payment_config.dart';
-import 'package:listapay/domain/entities/payment_method.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/domain/entities/ewallet_payment_config.dart';
+import 'package:ListaPay/domain/entities/payment_method.dart';
 
 /// Shows GCash/Maya account number and QR for the customer to scan at checkout.
 class PaymentQrPanel extends StatelessWidget {

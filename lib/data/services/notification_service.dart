@@ -1,11 +1,10 @@
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_timezone/flutter_timezone.dart';
-import 'package:listapay/core/constants/notification_channels.dart';
-import 'package:listapay/data/database/app_database.dart';
-import 'package:listapay/domain/repositories/debt_repository.dart';
-import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:ListaPay/core/constants/notification_channels.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/data/database/app_database.dart';
+import 'package:ListaPay/domain/repositories/debt_repository.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
@@ -23,15 +22,11 @@ class NotificationService {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    tz_data.initializeTimeZones();
-    try {
-      final timeZoneName = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(timeZoneName));
-    } catch (_) {
-      tz.setLocalLocation(tz.getLocation('Asia/Manila'));
-    }
+    tz.setLocalLocation(PhTime.location);
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -39,10 +34,7 @@ class NotificationService {
     );
 
     await _plugin.initialize(
-      const InitializationSettings(
-        android: androidSettings,
-        iOS: iosSettings,
-      ),
+      const InitializationSettings(android: androidSettings, iOS: iosSettings),
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
 
@@ -57,14 +49,16 @@ class NotificationService {
     if (defaultTargetPlatform == TargetPlatform.android) {
       await _plugin
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin
+          >()
           ?.requestNotificationsPermission();
     }
 
-  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
       await _plugin
           .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
+            IOSFlutterLocalNotificationsPlugin
+          >()
           ?.requestPermissions(alert: true, badge: true, sound: true);
     }
   }
@@ -181,27 +175,22 @@ class NotificationService {
     bool overdueOnly = false,
     bool dueSoonOnly = false,
   }) async {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    final today = PhTime.today();
     final dueSoonLimit = today.add(const Duration(days: 3));
 
-    final debts = await (_db.select(_db.debts)
-          ..where((d) => d.status.isNotIn(['paid'])))
-        .get();
+    final debts = await (_db.select(
+      _db.debts,
+    )..where((d) => d.status.isNotIn(['paid']))).get();
 
     var count = 0;
     for (final debt in debts) {
-      final payments = await (_db.select(_db.payments)
-            ..where((p) => p.debtId.equals(debt.id)))
-          .get();
+      final payments = await (_db.select(
+        _db.payments,
+      )..where((p) => p.debtId.equals(debt.id))).get();
       final paid = payments.fold<double>(0, (s, p) => s + p.amount);
       if (paid >= debt.amount - 0.001) continue;
 
-      final dueDay = DateTime(
-        debt.dueDate.year,
-        debt.dueDate.month,
-        debt.dueDate.day,
-      );
+      final dueDay = PhTime.startOfDay(debt.dueDate);
 
       if (overdueOnly && dueDay.isBefore(today)) {
         count++;
@@ -246,7 +235,9 @@ class NotificationService {
     required String message,
     String? refId,
   }) async {
-    await _db.into(_db.notificationLog).insert(
+    await _db
+        .into(_db.notificationLog)
+        .insert(
           NotificationLogCompanion.insert(
             type: type,
             refId: Value(refId),
@@ -257,8 +248,10 @@ class NotificationService {
   }
 
   Future<void> _createChannels() async {
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android == null) return;
 
     const channels = [
@@ -306,14 +299,14 @@ class NotificationService {
   }
 
   String _channelName(String id) => switch (id) {
-        NotificationChannels.inventory => 'Inventory',
-        NotificationChannels.debt => 'Debt Reminders',
-        _ => 'System',
-      };
+    NotificationChannels.inventory => 'Inventory',
+    NotificationChannels.debt => 'Debt Reminders',
+    _ => 'System',
+  };
 
   String _channelDescription(String id) => switch (id) {
-        NotificationChannels.inventory => 'Low stock alerts',
-        NotificationChannels.debt => 'Debt due and overdue alerts',
-        _ => 'System notifications',
-      };
+    NotificationChannels.inventory => 'Low stock alerts',
+    NotificationChannels.debt => 'Debt due and overdue alerts',
+    _ => 'System notifications',
+  };
 }

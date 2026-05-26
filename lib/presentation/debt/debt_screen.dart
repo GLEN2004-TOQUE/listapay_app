@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:listapay/core/router/app_router.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/core/widgets/empty_state.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/data/services/receipt_service.dart';
-import 'package:listapay/domain/entities/app_user.dart';
-import 'package:listapay/domain/entities/debt_record.dart';
-import 'package:listapay/domain/repositories/debt_repository.dart';
-import 'package:listapay/presentation/auth/auth_cubit.dart';
-import 'package:listapay/presentation/debt/debt_list_cubit.dart';
-import 'package:listapay/presentation/debt/widgets/customer_tab_payment_dialog.dart';
-import 'package:listapay/presentation/debt/widgets/debt_tile.dart';
+import 'package:ListaPay/core/router/app_router.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/core/widgets/empty_state.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/data/services/receipt_service.dart';
+import 'package:ListaPay/domain/entities/debt_record.dart';
+import 'package:ListaPay/domain/repositories/debt_repository.dart';
+import 'package:ListaPay/presentation/auth/auth_cubit.dart';
+import 'package:ListaPay/presentation/debt/debt_list_cubit.dart';
+import 'package:ListaPay/presentation/debt/widgets/customer_tab_payment_dialog.dart';
+import 'package:ListaPay/presentation/debt/widgets/debt_tile.dart';
 
 class DebtScreen extends StatefulWidget {
   const DebtScreen({super.key});
@@ -130,8 +130,7 @@ class _DebtView extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context, DebtListState state) {
-    final role = context.watch<AuthCubit>().state.user?.role;
-    final canPay = role == UserRole.admin || role == UserRole.cashier;
+    final canPay = context.watch<AuthCubit>().state.user?.canAccessDebts ?? false;
 
     if (state.isLoading && state.debts.isEmpty) {
       return const SimpleLoading(message: 'Loading debts...');
@@ -301,7 +300,7 @@ class _CustomerDebtGroupCard extends StatelessWidget {
             children: [
               if (group.customerPhone != null) Text(group.customerPhone!),
               Text(
-                '${group.debts.length} active utang entr${group.debts.length == 1 ? 'y' : 'ies'} • last added ${latestFormat.format(group.latestAddedAt)}',
+                '${group.debts.length} active utang entr${group.debts.length == 1 ? 'y' : 'ies'} • last added ${PhTime.format(latestFormat, group.latestAddedAt)}',
               ),
             ],
           ),
@@ -385,12 +384,12 @@ class _DebtEntryCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Added ${addedFormat.format(debt.createdAt)}',
+                        'Added ${PhTime.format(addedFormat, debt.createdAt)}',
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Due ${dueFormat.format(debt.dueDate)}',
+                        'Due ${PhTime.format(dueFormat, debt.dueDate)}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

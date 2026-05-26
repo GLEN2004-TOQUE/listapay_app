@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/domain/entities/customer.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/domain/entities/customer.dart';
 
 class CustomerTile extends StatelessWidget {
   const CustomerTile({

@@ -1,12 +1,13 @@
 import 'package:drift/drift.dart';
-import 'package:listapay/data/database/app_database.dart';
-import 'package:listapay/data/services/sync_enqueue.dart';
-import 'package:listapay/domain/entities/debt_line_item.dart';
-import 'package:listapay/domain/entities/debt_payment.dart';
-import 'package:listapay/domain/entities/debt_record.dart';
-import 'package:listapay/domain/entities/debt_status.dart';
-import 'package:listapay/domain/entities/payment_method.dart';
-import 'package:listapay/domain/repositories/debt_repository.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/data/database/app_database.dart';
+import 'package:ListaPay/data/services/sync_enqueue.dart';
+import 'package:ListaPay/domain/entities/debt_line_item.dart';
+import 'package:ListaPay/domain/entities/debt_payment.dart';
+import 'package:ListaPay/domain/entities/debt_record.dart';
+import 'package:ListaPay/domain/entities/debt_status.dart';
+import 'package:ListaPay/domain/entities/payment_method.dart';
+import 'package:ListaPay/domain/repositories/debt_repository.dart';
 
 class LocalDebtRepository implements DebtRepository {
   LocalDebtRepository(this._db);
@@ -15,11 +16,7 @@ class LocalDebtRepository implements DebtRepository {
 
   @override
   Future<void> refreshOverdueStatuses() async {
-    final startOfToday = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
-    );
+    final startOfToday = PhTime.today();
 
     await (_db.update(_db.debts)..where(
           (d) =>
@@ -105,7 +102,7 @@ class LocalDebtRepository implements DebtRepository {
       throw const DebtException('Debt not found.');
     }
 
-    final normalizedDueDate = DateTime(dueDate.year, dueDate.month, dueDate.day);
+    final normalizedDueDate = PhTime.startOfDay(dueDate);
     final status = debt.isFullyPaid
         ? 'paid'
         : normalizedDueDate.isBefore(_startOfToday())
@@ -123,7 +120,9 @@ class LocalDebtRepository implements DebtRepository {
       );
 
       if (debt.saleId != null) {
-        await (_db.update(_db.sales)..where((s) => s.id.equals(debt.saleId!))).write(
+        await (_db.update(
+          _db.sales,
+        )..where((s) => s.id.equals(debt.saleId!))).write(
           SalesCompanion(
             customerId: Value(customerId),
             synced: const Value(false),
@@ -188,13 +187,15 @@ class LocalDebtRepository implements DebtRepository {
             ? debt.remaining
             : remainingPayment;
 
-        await _db.into(_db.payments).insert(
-          PaymentsCompanion.insert(
-            debtId: debt.id,
-            amount: appliedAmount,
-            synced: const Value(false),
-          ),
-        );
+        await _db
+            .into(_db.payments)
+            .insert(
+              PaymentsCompanion.insert(
+                debtId: debt.id,
+                amount: appliedAmount,
+                synced: const Value(false),
+              ),
+            );
 
         final newPaid = debt.paidAmount + appliedAmount;
         final newStatus = newPaid >= debt.amount - 0.001
@@ -204,10 +205,7 @@ class LocalDebtRepository implements DebtRepository {
             : 'pending';
 
         await (_db.update(_db.debts)..where((d) => d.id.equals(debt.id))).write(
-          DebtsCompanion(
-            status: Value(newStatus),
-            synced: const Value(false),
-          ),
+          DebtsCompanion(status: Value(newStatus), synced: const Value(false)),
         );
 
         remainingPayment -= appliedAmount;
@@ -293,16 +291,18 @@ class LocalDebtRepository implements DebtRepository {
       final saleId = debt.saleId;
       final saleItems = saleId == null
           ? const <SaleItem>[]
-          : await (_db.select(_db.saleItems)
-                ..where((item) => item.saleId.equals(saleId)))
-              .get();
+          : await (_db.select(
+              _db.saleItems,
+            )..where((item) => item.saleId.equals(saleId))).get();
 
       for (final item in saleItems) {
-        final product =
-            await (_db.select(_db.products)..where((p) => p.id.equals(item.productId)))
-                .getSingleOrNull();
+        final product = await (_db.select(
+          _db.products,
+        )..where((p) => p.id.equals(item.productId))).getSingleOrNull();
         if (product != null) {
-          await (_db.update(_db.products)..where((p) => p.id.equals(product.id))).write(
+          await (_db.update(
+            _db.products,
+          )..where((p) => p.id.equals(product.id))).write(
             ProductsCompanion(stockQty: Value(product.stockQty + item.qty)),
           );
         }
@@ -313,13 +313,20 @@ class LocalDebtRepository implements DebtRepository {
 
       if (saleId != null) {
         for (final item in saleItems) {
-          await enqueueSyncDelete(_db, entityTable: 'sale_items', localId: item.id);
+          await enqueueSyncDelete(
+            _db,
+            entityTable: 'sale_items',
+            localId: item.id,
+          );
         }
         await enqueueSyncDelete(_db, entityTable: 'sales', localId: saleId);
 
-        await (_db.delete(_db.saleItems)..where((item) => item.saleId.equals(saleId)))
-            .go();
-        await (_db.delete(_db.sales)..where((sale) => sale.id.equals(saleId))).go();
+        await (_db.delete(
+          _db.saleItems,
+        )..where((item) => item.saleId.equals(saleId))).go();
+        await (_db.delete(
+          _db.sales,
+        )..where((sale) => sale.id.equals(saleId))).go();
       }
     });
   }
@@ -418,7 +425,6 @@ class LocalDebtRepository implements DebtRepository {
   }
 
   DateTime _startOfToday() {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day);
+    return PhTime.today();
   }
 }

@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
-import 'package:listapay/core/security/device_id_config.dart';
+import 'package:ListaPay/core/security/device_id_config.dart';
 
 /// Builds a stable, opaque device ID from a platform identifier and fixed salts.
 ///

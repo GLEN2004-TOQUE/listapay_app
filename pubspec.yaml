@@ -1,4 +1,4 @@
-name: listapay
+name: ListaPay
 description: Offline-first POS and store management for Philippine retail.
 publish_to: 'none'
 version: 1.0.0+1
@@ -45,21 +45,22 @@ dev_dependencies:
   flutter_native_splash: ^2.4.6
   drift_dev: ^2.25.0
   build_runner: ^2.4.15
+  image: ^4.8.0
 
 flutter_launcher_icons:
   android: true
   ios: true
   remove_alpha_ios: true
-  image_path: assets/images/LISTAPAY-LOGO.png
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: assets/images/LISTAPAY-LOGO.png
+  image_path: assets/images/apply_icon.png
+  adaptive_icon_background: "#041A2D"
+  adaptive_icon_foreground: assets/images/apply_icon.png
 
 flutter_native_splash:
-  color: "#FFFFFF"
-  image: assets/images/LISTAPAY-LOGO.png
+  color: "#F6F8F7"
+  image: assets/images/splash_screen_native.png
   android_12:
-    color: "#FFFFFF"
-    image: assets/images/LISTAPAY-LOGO.png
+    color: "#F6F8F7"
+    image: assets/images/splash_screen_native.png
 
 flutter:
   uses-material-design: true

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:listapay/core/utils/phone_format.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/data/services/connectivity_service.dart';
-import 'package:listapay/data/services/debt_sms_reminder_service.dart';
-import 'package:listapay/data/services/sms_service.dart';
+import 'package:ListaPay/core/utils/phone_format.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/data/services/connectivity_service.dart';
+import 'package:ListaPay/data/services/debt_sms_reminder_service.dart';
+import 'package:ListaPay/data/services/sms_service.dart';
 
 class SmsSettingsSheet extends StatefulWidget {
   const SmsSettingsSheet({super.key});

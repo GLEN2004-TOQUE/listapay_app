@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:listapay/core/security/device_fingerprint_service.dart';
+import 'package:ListaPay/core/security/device_fingerprint_service.dart';
 
 enum DeviceBindingStatus {
   /// First launch on this install — fingerprint stored locally.

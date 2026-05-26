@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/domain/repositories/inventory_repository.dart';
-import 'package:listapay/presentation/inventory/product_list_cubit.dart';
-import 'package:listapay/presentation/pos/cart_cubit.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/domain/repositories/inventory_repository.dart';
+import 'package:ListaPay/presentation/inventory/product_list_cubit.dart';
+import 'package:ListaPay/presentation/pos/cart_cubit.dart';
 
 class ProductPickerScreen extends StatelessWidget {
   const ProductPickerScreen({super.key});
@@ -75,17 +75,22 @@ class _ProductPickerViewState extends State<_ProductPickerView> {
                   itemCount: state.products.length,
                   itemBuilder: (context, index) {
                     final product = state.products[index];
-                    final outOfStock = product.stockQty <= 0;
+                    final outOfStock = product.isOutOfStock;
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
                         title: Text(product.name),
                         subtitle: Text(
-                          '${formatPeso(product.price)} · Stock: ${product.stockQty}',
+                          outOfStock
+                              ? '${formatPeso(product.price)} · Out of stock'
+                              : '${formatPeso(product.price)} · Stock: ${product.stockQty}',
                         ),
                         trailing: outOfStock
-                            ? const Text('Out', style: TextStyle(color: Colors.red))
+                            ? const Text(
+                                'Out',
+                                style: TextStyle(color: Colors.red),
+                              )
                             : const Icon(Icons.add),
                         enabled: !outOfStock,
                         onTap: outOfStock

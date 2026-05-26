@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/widgets/empty_state.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/domain/entities/app_user.dart';
-import 'package:listapay/domain/entities/product_category.dart';
-import 'package:listapay/domain/repositories/inventory_repository.dart';
-import 'package:listapay/presentation/auth/auth_cubit.dart';
-import 'package:listapay/presentation/inventory/category_list_cubit.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/widgets/empty_state.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/domain/entities/product_category.dart';
+import 'package:ListaPay/domain/repositories/inventory_repository.dart';
+import 'package:ListaPay/presentation/auth/auth_cubit.dart';
+import 'package:ListaPay/presentation/inventory/category_list_cubit.dart';
 
 class CategoryScreen extends StatelessWidget {
   const CategoryScreen({super.key});
@@ -37,8 +36,7 @@ class _CategoryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canEdit = context.watch<AuthCubit>().state.user!.role !=
-        UserRole.viewer;
+    final canEdit = context.watch<AuthCubit>().state.user!.canManageInventory;
 
     return BlocConsumer<CategoryListCubit, CategoryListState>(
       listener: (context, state) {

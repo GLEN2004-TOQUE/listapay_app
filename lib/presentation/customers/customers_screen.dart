@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listapay/core/router/app_router.dart';
-import 'package:listapay/core/widgets/empty_state.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/domain/entities/app_user.dart';
-import 'package:listapay/domain/repositories/customer_repository.dart';
-import 'package:listapay/presentation/auth/auth_cubit.dart';
-import 'package:listapay/presentation/customers/customer_list_cubit.dart';
-import 'package:listapay/presentation/customers/widgets/customer_tile.dart';
+import 'package:ListaPay/core/router/app_router.dart';
+import 'package:ListaPay/core/widgets/empty_state.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/domain/repositories/customer_repository.dart';
+import 'package:ListaPay/presentation/auth/auth_cubit.dart';
+import 'package:ListaPay/presentation/customers/customer_list_cubit.dart';
+import 'package:ListaPay/presentation/customers/widgets/customer_tile.dart';
 
 class CustomersScreen extends StatelessWidget {
   const CustomersScreen({super.key});
@@ -41,9 +40,9 @@ class _CustomersViewState extends State<_CustomersView> {
 
   @override
   Widget build(BuildContext context) {
-    final role = context.watch<AuthCubit>().state.user!.role;
-    final canEdit = role != UserRole.viewer;
-    final canDelete = role == UserRole.admin;
+    final user = context.watch<AuthCubit>().state.user!;
+    final canEdit = user.canAccessCustomers;
+    final canDelete = user.isAdmin;
 
     return BlocConsumer<CustomerListCubit, CustomerListState>(
       listener: (context, state) {

@@ -1,9 +1,9 @@
 import 'package:drift/drift.dart';
-import 'package:listapay/data/database/app_database.dart';
-import 'package:listapay/data/services/sync_enqueue.dart';
-import 'package:listapay/domain/entities/product_category.dart';
-import 'package:listapay/domain/entities/product_item.dart';
-import 'package:listapay/domain/repositories/inventory_repository.dart';
+import 'package:ListaPay/data/database/app_database.dart';
+import 'package:ListaPay/data/services/sync_enqueue.dart';
+import 'package:ListaPay/domain/entities/product_category.dart';
+import 'package:ListaPay/domain/entities/product_item.dart';
+import 'package:ListaPay/domain/repositories/inventory_repository.dart';
 
 class LocalInventoryRepository implements InventoryRepository {
   LocalInventoryRepository(this._db);

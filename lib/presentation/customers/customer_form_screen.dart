@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/domain/repositories/customer_repository.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/domain/repositories/customer_repository.dart';
 
 class CustomerFormScreen extends StatefulWidget {
   const CustomerFormScreen({super.key, this.customerId});

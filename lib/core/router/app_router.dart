@@ -1,29 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listapay/presentation/auth/auth_cubit.dart';
-import 'package:listapay/presentation/auth/change_pin_screen.dart';
-import 'package:listapay/presentation/auth/login_screen.dart';
-import 'package:listapay/presentation/customers/customer_form_screen.dart';
-import 'package:listapay/presentation/customers/customers_screen.dart';
-import 'package:listapay/presentation/debt/debt_detail_screen.dart';
-import 'package:listapay/presentation/debt/debt_screen.dart';
-import 'package:listapay/presentation/home/home_screen.dart';
-import 'package:listapay/presentation/inventory/barcode_scanner_screen.dart';
-import 'package:listapay/presentation/inventory/category_screen.dart';
-import 'package:listapay/presentation/inventory/inventory_screen.dart';
-import 'package:listapay/presentation/inventory/product_form_screen.dart';
-import 'package:listapay/presentation/modules/reports_screen.dart';
-import 'package:listapay/presentation/modules/settings_screen.dart';
-import 'package:listapay/presentation/pos/checkout_screen.dart';
-import 'package:listapay/presentation/pos/pos_screen.dart';
-import 'package:listapay/presentation/pos/pos_shell.dart';
-import 'package:listapay/presentation/pos/product_picker_screen.dart';
-import 'package:listapay/presentation/splash/splash_screen.dart';
+import 'package:ListaPay/domain/entities/app_user.dart';
+import 'package:ListaPay/presentation/auth/auth_cubit.dart';
+import 'package:ListaPay/presentation/auth/change_pin_screen.dart';
+import 'package:ListaPay/presentation/auth/login_screen.dart';
+import 'package:ListaPay/presentation/auth/register_screen.dart';
+import 'package:ListaPay/presentation/customers/customer_form_screen.dart';
+import 'package:ListaPay/presentation/customers/customers_screen.dart';
+import 'package:ListaPay/presentation/debt/debt_detail_screen.dart';
+import 'package:ListaPay/presentation/debt/debt_screen.dart';
+import 'package:ListaPay/presentation/home/home_screen.dart';
+import 'package:ListaPay/presentation/inventory/barcode_scanner_screen.dart';
+import 'package:ListaPay/presentation/inventory/category_screen.dart';
+import 'package:ListaPay/presentation/inventory/inventory_screen.dart';
+import 'package:ListaPay/presentation/inventory/product_form_screen.dart';
+import 'package:ListaPay/presentation/modules/reports_screen.dart';
+import 'package:ListaPay/presentation/modules/settings_screen.dart';
+import 'package:ListaPay/presentation/pos/checkout_screen.dart';
+import 'package:ListaPay/presentation/pos/pos_screen.dart';
+import 'package:ListaPay/presentation/pos/pos_shell.dart';
+import 'package:ListaPay/presentation/pos/product_picker_screen.dart';
+import 'package:ListaPay/presentation/splash/splash_screen.dart';
 
 abstract final class AppRoutes {
   static const splash = '/';
   static const login = '/login';
+  static const register = '/register';
   static const changePin = '/change-pin';
   static const home = '/home';
   static const pos = '/pos';
@@ -46,7 +49,30 @@ abstract final class AppRoutes {
 }
 
 bool _isAdminOnlyRoute(String path) =>
-    path == AppRoutes.reports || path == AppRoutes.settings;
+    path == AppRoutes.reports;
+
+bool _canAccessRoute(AppUser user, String path) {
+  if (_isAdminOnlyRoute(path)) {
+    return user.canAccessReports;
+  }
+  if (path == AppRoutes.settings) {
+    return user.canAccessSettings;
+  }
+  if (path == AppRoutes.pos || path.startsWith('${AppRoutes.pos}/')) {
+    return user.canSell;
+  }
+  if (path == AppRoutes.inventory || path.startsWith('${AppRoutes.inventory}/')) {
+    return user.canManageInventory;
+  }
+  if (path == AppRoutes.customers ||
+      path.startsWith('${AppRoutes.customers}/')) {
+    return user.canAccessCustomers;
+  }
+  if (path == AppRoutes.debt || path.startsWith('${AppRoutes.debt}/')) {
+    return user.canAccessDebts;
+  }
+  return true;
+}
 
 GoRouter createAppRouter(AuthCubit authCubit) {
   return GoRouter(
@@ -67,7 +93,9 @@ GoRouter createAppRouter(AuthCubit authCubit) {
       if (!isLoggedIn && path == AppRoutes.splash) {
         return AppRoutes.login;
       }
-      if (!isLoggedIn && path != AppRoutes.login) {
+      if (!isLoggedIn &&
+          path != AppRoutes.login &&
+          path != AppRoutes.register) {
         return AppRoutes.login;
       }
 
@@ -84,13 +112,13 @@ GoRouter createAppRouter(AuthCubit authCubit) {
           if (!voluntary) return AppRoutes.home;
         }
 
-        if (user != null &&
-            !user.isAdmin &&
-            _isAdminOnlyRoute(path)) {
+        if (user != null && !_canAccessRoute(user, path)) {
           return AppRoutes.home;
         }
 
-        if (path == AppRoutes.login || path == AppRoutes.splash) {
+        if (path == AppRoutes.login ||
+            path == AppRoutes.register ||
+            path == AppRoutes.splash) {
           return AppRoutes.home;
         }
       }
@@ -100,23 +128,34 @@ GoRouter createAppRouter(AuthCubit authCubit) {
     routes: [
       GoRoute(
         path: AppRoutes.splash,
-        builder: (context, state) => const SplashScreen(),
+        pageBuilder: (context, state) =>
+            _buildFadePage(state: state, child: const SplashScreen()),
       ),
       GoRoute(
         path: AppRoutes.login,
-        builder: (context, state) => const LoginScreen(),
+        pageBuilder: (context, state) =>
+            _buildFadePage(state: state, child: const LoginScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.register,
+        pageBuilder: (context, state) =>
+            _buildFadePage(state: state, child: const RegisterScreen()),
       ),
       GoRoute(
         path: AppRoutes.changePin,
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final auth = context.read<AuthCubit>().state;
           final forced = auth.requiresPinChange;
-          return ChangePinScreen(forced: forced);
+          return _buildFadePage(
+            state: state,
+            child: ChangePinScreen(forced: forced),
+          );
         },
       ),
       GoRoute(
         path: AppRoutes.home,
-        builder: (context, state) => const HomeScreen(),
+        pageBuilder: (context, state) =>
+            _buildFadePage(state: state, child: const HomeScreen()),
       ),
       ShellRoute(
         builder: (context, state, child) => PosShell(child: child),
@@ -205,6 +244,26 @@ GoRouter createAppRouter(AuthCubit authCubit) {
         builder: (context, state) => const SettingsScreen(),
       ),
     ],
+  );
+}
+
+CustomTransitionPage<void> _buildFadePage({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 280),
+    reverseTransitionDuration: const Duration(milliseconds: 220),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+      return FadeTransition(opacity: curved, child: child);
+    },
   );
 }
 

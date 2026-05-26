@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/data/services/payment_config_service.dart';
-import 'package:listapay/domain/entities/ewallet_payment_config.dart';
-import 'package:listapay/domain/entities/payment_method.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/data/services/payment_config_service.dart';
+import 'package:ListaPay/domain/entities/ewallet_payment_config.dart';
+import 'package:ListaPay/domain/entities/payment_method.dart';
 
 class PaymentSettingsSheet extends StatefulWidget {
   const PaymentSettingsSheet({super.key});

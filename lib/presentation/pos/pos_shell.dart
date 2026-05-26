@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:listapay/presentation/pos/cart_cubit.dart';
+import 'package:ListaPay/presentation/pos/cart_cubit.dart';
 
 /// Provides shared [CartCubit] for all POS sub-routes.
 class PosShell extends StatelessWidget {

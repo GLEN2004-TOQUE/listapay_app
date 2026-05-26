@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/domain/entities/product_item.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/domain/entities/product_item.dart';
 
 class ProductTile extends StatelessWidget {
   const ProductTile({
@@ -73,7 +73,27 @@ class ProductTile extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (product.isLowStock)
+                      if (product.isOutOfStock)
+                        Container(
+                          margin: const EdgeInsets.only(right: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Out',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppColors.error,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        )
+                      else if (product.isLowStock)
                         Container(
                           margin: const EdgeInsets.only(right: 6),
                           padding: const EdgeInsets.symmetric(
@@ -94,9 +114,11 @@ class ProductTile extends StatelessWidget {
                           ),
                         ),
                       Text(
-                        'Stock: ${product.stockQty}',
+                        product.isOutOfStock
+                            ? 'Out of stock'
+                            : 'Stock: ${product.stockQty}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: product.isLowStock
+                              color: product.isOutOfStock || product.isLowStock
                                   ? AppColors.error
                                   : AppColors.textSecondary,
                             ),

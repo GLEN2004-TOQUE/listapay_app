@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listapay/core/router/app_router.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/widgets/module_card.dart';
-import 'package:listapay/core/widgets/offline_banner.dart';
-import 'package:listapay/data/services/connectivity_service.dart';
-import 'package:listapay/presentation/auth/auth_cubit.dart';
+import 'package:ListaPay/core/router/app_router.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/widgets/module_card.dart';
+import 'package:ListaPay/core/widgets/offline_banner.dart';
+import 'package:ListaPay/data/services/connectivity_service.dart';
+import 'package:ListaPay/presentation/auth/auth_cubit.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthCubit>().state.user!;
+    final user = context.watch<AuthCubit>().state.user;
+    if (user == null) {
+      return const Scaffold(body: SizedBox.shrink());
+    }
+
     final connectivity = context.read<ConnectivityService>();
 
     return Scaffold(
@@ -95,42 +99,47 @@ class HomeScreen extends StatelessWidget {
                   crossAxisSpacing: 12,
                   childAspectRatio: 1.1,
                   children: [
-                    ModuleCard(
-                      icon: Icons.point_of_sale,
-                      label: 'POS',
-                      subtitle: 'Sell & checkout',
-                      onTap: () => context.push(AppRoutes.pos),
-                    ),
-                    ModuleCard(
-                      icon: Icons.account_balance_wallet,
-                      label: 'Utang',
-                      subtitle: 'Customer debt',
-                      onTap: () => context.push(AppRoutes.debt),
-                    ),
-                    ModuleCard(
-                      icon: Icons.people_outline,
-                      label: 'Customers',
-                      onTap: () => context.push(AppRoutes.customers),
-                    ),
-                    ModuleCard(
-                      icon: Icons.inventory_2_outlined,
-                      label: 'Inventory',
-                      subtitle: 'Products & stock',
-                      onTap: () => context.push(AppRoutes.inventory),
-                    ),
-                    if (user.isAdmin) ...[
+                    if (user.canSell)
+                      ModuleCard(
+                        icon: Icons.point_of_sale,
+                        label: 'POS',
+                        subtitle: 'Sell & checkout',
+                        onTap: () => context.push(AppRoutes.pos),
+                      ),
+                    if (user.canAccessDebts)
+                      ModuleCard(
+                        icon: Icons.account_balance_wallet,
+                        label: 'Utang',
+                        subtitle: 'Customer debt',
+                        onTap: () => context.push(AppRoutes.debt),
+                      ),
+                    if (user.canAccessCustomers)
+                      ModuleCard(
+                        icon: Icons.people_outline,
+                        label: 'Customers',
+                        onTap: () => context.push(AppRoutes.customers),
+                      ),
+                    if (user.canManageInventory)
+                      ModuleCard(
+                        icon: Icons.inventory_2_outlined,
+                        label: 'Inventory',
+                        subtitle: 'Products & stock',
+                        onTap: () => context.push(AppRoutes.inventory),
+                      ),
+                    if (user.canAccessReports) ...[
                       ModuleCard(
                         icon: Icons.bar_chart,
                         label: 'Reports',
                         onTap: () => context.push(AppRoutes.reports),
                       ),
+                    ],
+                    if (user.canAccessSettings)
                       ModuleCard(
                         icon: Icons.settings_outlined,
                         label: 'Settings',
                         subtitle: 'Sync & config',
                         onTap: () => context.push(AppRoutes.settings),
                       ),
-                    ],
                   ],
                 ),
               ],

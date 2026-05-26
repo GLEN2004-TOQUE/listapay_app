@@ -3,26 +3,27 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:listapay/core/router/app_router.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/data/services/notification_service.dart';
-import 'package:listapay/data/services/payment_config_service.dart';
-import 'package:listapay/data/services/receipt_service.dart';
-import 'package:listapay/domain/entities/completed_sale.dart';
-import 'package:listapay/domain/entities/debt_record.dart';
-import 'package:listapay/domain/entities/ewallet_payment_config.dart';
-import 'package:listapay/domain/entities/customer_summary.dart';
-import 'package:listapay/domain/entities/payment_method.dart';
-import 'package:listapay/domain/repositories/customer_repository.dart';
-import 'package:listapay/domain/repositories/debt_repository.dart';
-import 'package:listapay/domain/repositories/pos_repository.dart';
-import 'package:listapay/presentation/auth/auth_cubit.dart';
-import 'package:listapay/presentation/debt/widgets/customer_tab_payment_dialog.dart';
-import 'package:listapay/presentation/pos/cart_cubit.dart';
-import 'package:listapay/presentation/pos/widgets/payment_method_tile.dart';
-import 'package:listapay/presentation/pos/widgets/payment_qr_panel.dart';
+import 'package:ListaPay/core/router/app_router.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/data/services/notification_service.dart';
+import 'package:ListaPay/data/services/payment_config_service.dart';
+import 'package:ListaPay/data/services/receipt_service.dart';
+import 'package:ListaPay/domain/entities/completed_sale.dart';
+import 'package:ListaPay/domain/entities/debt_record.dart';
+import 'package:ListaPay/domain/entities/ewallet_payment_config.dart';
+import 'package:ListaPay/domain/entities/customer_summary.dart';
+import 'package:ListaPay/domain/entities/payment_method.dart';
+import 'package:ListaPay/domain/repositories/customer_repository.dart';
+import 'package:ListaPay/domain/repositories/debt_repository.dart';
+import 'package:ListaPay/domain/repositories/pos_repository.dart';
+import 'package:ListaPay/presentation/auth/auth_cubit.dart';
+import 'package:ListaPay/presentation/debt/widgets/customer_tab_payment_dialog.dart';
+import 'package:ListaPay/presentation/pos/cart_cubit.dart';
+import 'package:ListaPay/presentation/pos/widgets/payment_method_tile.dart';
+import 'package:ListaPay/presentation/pos/widgets/payment_qr_panel.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -36,7 +37,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final TextEditingController _cashPaidController = TextEditingController();
   List<CustomerSummary> _customers = [];
   CustomerSummary? _selectedCustomer;
-  DateTime _dueDate = DateTime.now().add(const Duration(days: 30));
+  DateTime _dueDate = PhTime.today().add(const Duration(days: 30));
   bool _loadingCustomers = true;
   bool _isProcessing = false;
   EwalletPaymentConfig? _ewalletConfig;
@@ -290,8 +291,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _dueDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      firstDate: PhTime.today(),
+      lastDate: PhTime.today().add(const Duration(days: 365)),
     );
     if (picked != null) setState(() => _dueDate = picked);
   }
@@ -629,14 +630,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Added ${dateTimeFormat.format(debt.createdAt)}',
+                                            'Added ${PhTime.format(dateTimeFormat, debt.createdAt)}',
                                             style: const TextStyle(
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            'Due ${dateFormat.format(debt.dueDate)}',
+                                            'Due ${PhTime.format(dateFormat, debt.dueDate)}',
                                             style: Theme.of(
                                               sheetContext,
                                             ).textTheme.bodySmall,
@@ -846,7 +847,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      dateTimeFormat.format(debt.createdAt),
+                                      PhTime.format(
+                                        dateTimeFormat,
+                                        debt.createdAt,
+                                      ),
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -1018,7 +1022,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Due date'),
-                    subtitle: Text(dateFormat.format(_dueDate)),
+                    subtitle: Text(PhTime.format(dateFormat, _dueDate)),
                     trailing: const Icon(Icons.calendar_today),
                     onTap: _isProcessing ? null : _pickDueDate,
                   ),

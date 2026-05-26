@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:listapay/core/utils/phone_format.dart';
-import 'package:listapay/core/utils/sms_templates.dart';
+import 'package:ListaPay/core/utils/phone_format.dart';
+import 'package:ListaPay/core/utils/sms_templates.dart';
 
 void main() {
   group('normalizePhilippinePhone', () {

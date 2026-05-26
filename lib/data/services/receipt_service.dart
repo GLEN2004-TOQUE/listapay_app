@@ -1,8 +1,9 @@
 import 'package:intl/intl.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/domain/entities/completed_sale.dart';
-import 'package:listapay/domain/entities/debt_record.dart';
-import 'package:listapay/domain/entities/payment_method.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/domain/entities/completed_sale.dart';
+import 'package:ListaPay/domain/entities/debt_record.dart';
+import 'package:ListaPay/domain/entities/payment_method.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -101,7 +102,7 @@ class ReceiptService {
                 style: const pw.TextStyle(fontSize: 9),
               ),
               pw.Text(
-                dateFormat.format(sale.createdAt),
+                PhTime.format(dateFormat, sale.createdAt),
                 style: const pw.TextStyle(fontSize: 9),
               ),
               if (sale.customerName != null)
@@ -234,8 +235,10 @@ class ReceiptService {
                   ),
                 pw.SizedBox(height: 8),
                 pw.Text('Debt #: ${debt.id}'),
-                pw.Text('Created: ${dateTimeFormat.format(debt.createdAt)}'),
-                pw.Text('Due date: ${dateFormat.format(debt.dueDate)}'),
+                pw.Text(
+                  'Created: ${PhTime.format(dateTimeFormat, debt.createdAt)}',
+                ),
+                pw.Text('Due date: ${PhTime.format(dateFormat, debt.dueDate)}'),
                 pw.Text('Status: ${debt.displayStatus.label}'),
               ],
             ),
@@ -344,7 +347,7 @@ class ReceiptService {
                   (payment) => pw.TableRow(
                     children: [
                       _tableCell(formatPeso(payment.amount)),
-                      _tableCell(dateTimeFormat.format(payment.paidAt)),
+                      _tableCell(PhTime.format(dateTimeFormat, payment.paidAt)),
                     ],
                   ),
                 ),
@@ -364,7 +367,7 @@ class ReceiptService {
   }) async {
     final dateFormat = DateFormat('MMM d, yyyy');
     final dateTimeFormat = DateFormat('MMM d, yyyy · h:mm a');
-    final generatedAt = DateTime.now();
+    final generatedAt = PhTime.now();
     final activeDebts = [...debts]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final totalRemaining = activeDebts.fold<double>(
@@ -410,7 +413,9 @@ class ReceiptService {
                     child: pw.Text('Phone: $customerPhone'),
                   ),
                 pw.SizedBox(height: 8),
-                pw.Text('Generated: ${dateTimeFormat.format(generatedAt)}'),
+                pw.Text(
+                  'Generated: ${PhTime.format(dateTimeFormat, generatedAt)}',
+                ),
                 pw.Text('Active utang entries: ${activeDebts.length}'),
                 pw.Text('Total unpaid balance: ${formatPeso(totalRemaining)}'),
               ],
@@ -449,10 +454,10 @@ class ReceiptService {
                               ),
                               pw.SizedBox(height: 2),
                               pw.Text(
-                                'Added: ${dateTimeFormat.format(debt.createdAt)}',
+                                'Added: ${PhTime.format(dateTimeFormat, debt.createdAt)}',
                               ),
                               pw.Text(
-                                'Due date: ${dateFormat.format(debt.dueDate)}',
+                                'Due date: ${PhTime.format(dateFormat, debt.dueDate)}',
                               ),
                               pw.Text('Status: ${debt.displayStatus.label}'),
                             ],
@@ -575,7 +580,9 @@ class ReceiptService {
                         (payment) => pw.TableRow(
                           children: [
                             _tableCell(formatPeso(payment.amount)),
-                            _tableCell(dateTimeFormat.format(payment.paidAt)),
+                            _tableCell(
+                              PhTime.format(dateTimeFormat, payment.paidAt),
+                            ),
                           ],
                         ),
                       ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listapay/core/widgets/empty_state.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/core/widgets/empty_state.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
 
 class ModuleScaffold extends StatelessWidget {
   const ModuleScaffold({

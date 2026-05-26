@@ -1,5 +1,5 @@
-import 'package:listapay/domain/entities/customer.dart';
-import 'package:listapay/domain/entities/customer_summary.dart';
+import 'package:ListaPay/domain/entities/customer.dart';
+import 'package:ListaPay/domain/entities/customer_summary.dart';
 
 class CustomerException implements Exception {
   const CustomerException(this.message);

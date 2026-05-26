@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listapay/core/router/app_router.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/core/widgets/empty_state.dart';
-import 'package:listapay/domain/repositories/inventory_repository.dart';
-import 'package:listapay/presentation/auth/auth_cubit.dart';
-import 'package:listapay/presentation/pos/cart_cubit.dart';
-import 'package:listapay/presentation/pos/widgets/cart_line_tile.dart';
+import 'package:ListaPay/core/router/app_router.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/core/widgets/empty_state.dart';
+import 'package:ListaPay/domain/repositories/inventory_repository.dart';
+import 'package:ListaPay/presentation/auth/auth_cubit.dart';
+import 'package:ListaPay/presentation/pos/cart_cubit.dart';
+import 'package:ListaPay/presentation/pos/widgets/cart_line_tile.dart';
 
 class PosScreen extends StatelessWidget {
   const PosScreen({super.key});
