@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listapay/core/router/app_router.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/widgets/module_card.dart';
-import 'package:listapay/core/widgets/offline_banner.dart';
-import 'package:listapay/data/services/connectivity_service.dart';
-import 'package:listapay/presentation/auth/auth_cubit.dart';
+import 'package:ListaPay/core/router/app_router.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/widgets/module_card.dart';
+import 'package:ListaPay/core/widgets/offline_banner.dart';
+import 'package:ListaPay/data/services/connectivity_service.dart';
+import 'package:ListaPay/presentation/auth/auth_cubit.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});

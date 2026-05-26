@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:listapay/domain/entities/product_item.dart';
+import 'package:ListaPay/domain/entities/product_item.dart';
 
 class CartLine extends Equatable {
   const CartLine({

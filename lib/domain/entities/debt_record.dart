@@ -1,8 +1,8 @@
 import 'package:equatable/equatable.dart';
-import 'package:listapay/domain/entities/debt_line_item.dart';
-import 'package:listapay/domain/entities/debt_payment.dart';
-import 'package:listapay/domain/entities/debt_status.dart';
-import 'package:listapay/core/utils/ph_time.dart';
+import 'package:ListaPay/domain/entities/debt_line_item.dart';
+import 'package:ListaPay/domain/entities/debt_payment.dart';
+import 'package:ListaPay/domain/entities/debt_status.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
 
 class DebtRecord extends Equatable {
   const DebtRecord({

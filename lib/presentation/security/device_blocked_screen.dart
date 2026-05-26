@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:listapay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
 
 /// Shown when this install's fingerprint does not match the bound device.
 class DeviceBlockedScreen extends StatelessWidget {

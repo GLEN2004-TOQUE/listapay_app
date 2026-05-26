@@ -2,10 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:listapay/domain/entities/debt_record.dart';
-import 'package:listapay/domain/entities/debt_status.dart';
-import 'package:listapay/domain/repositories/debt_repository.dart';
-import 'package:listapay/presentation/debt/widgets/customer_tab_payment_dialog.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/domain/entities/debt_record.dart';
+import 'package:ListaPay/domain/entities/debt_status.dart';
+import 'package:ListaPay/domain/repositories/debt_repository.dart';
+import 'package:ListaPay/presentation/debt/widgets/customer_tab_payment_dialog.dart';
 
 void main() {
   testWidgets('records partial tab payment and closes dialog', (tester) async {
@@ -52,7 +53,7 @@ void main() {
     await tester.pump();
 
     expect(recordedAmount, 5);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(BrandedLoadingIndicator), findsOneWidget);
     expect(find.byType(AlertDialog), findsOneWidget);
 
     completer.complete();

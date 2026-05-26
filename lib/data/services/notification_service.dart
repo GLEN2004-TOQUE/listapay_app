@@ -1,10 +1,10 @@
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:listapay/core/constants/notification_channels.dart';
-import 'package:listapay/core/utils/ph_time.dart';
-import 'package:listapay/data/database/app_database.dart';
-import 'package:listapay/domain/repositories/debt_repository.dart';
+import 'package:ListaPay/core/constants/notification_channels.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/data/database/app_database.dart';
+import 'package:ListaPay/domain/repositories/debt_repository.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {

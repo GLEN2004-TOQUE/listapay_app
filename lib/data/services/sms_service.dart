@@ -1,6 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:listapay/core/utils/phone_format.dart';
+import 'package:ListaPay/core/utils/phone_format.dart';
 
 class SmsException implements Exception {
   const SmsException(this.message);

@@ -1,13 +1,13 @@
 import 'package:drift/drift.dart';
-import 'package:listapay/core/utils/ph_time.dart';
-import 'package:listapay/data/database/app_database.dart';
-import 'package:listapay/data/services/sync_enqueue.dart';
-import 'package:listapay/domain/entities/debt_line_item.dart';
-import 'package:listapay/domain/entities/debt_payment.dart';
-import 'package:listapay/domain/entities/debt_record.dart';
-import 'package:listapay/domain/entities/debt_status.dart';
-import 'package:listapay/domain/entities/payment_method.dart';
-import 'package:listapay/domain/repositories/debt_repository.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/data/database/app_database.dart';
+import 'package:ListaPay/data/services/sync_enqueue.dart';
+import 'package:ListaPay/domain/entities/debt_line_item.dart';
+import 'package:ListaPay/domain/entities/debt_payment.dart';
+import 'package:ListaPay/domain/entities/debt_record.dart';
+import 'package:ListaPay/domain/entities/debt_status.dart';
+import 'package:ListaPay/domain/entities/payment_method.dart';
+import 'package:ListaPay/domain/repositories/debt_repository.dart';
 
 class LocalDebtRepository implements DebtRepository {
   LocalDebtRepository(this._db);

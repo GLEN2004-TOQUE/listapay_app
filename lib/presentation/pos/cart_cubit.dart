@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:listapay/domain/entities/cart_line.dart';
-import 'package:listapay/domain/entities/product_item.dart';
+import 'package:ListaPay/domain/entities/cart_line.dart';
+import 'package:ListaPay/domain/entities/product_item.dart';
 
 part 'cart_state.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
 
 void main() {
   testWidgets('SimpleLoading shows message', (WidgetTester tester) async {
@@ -12,6 +12,6 @@ void main() {
       ),
     );
     expect(find.text('Loading store...'), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(BrandedLoadingIndicator), findsOneWidget);
   });
 }

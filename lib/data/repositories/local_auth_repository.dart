@@ -1,10 +1,10 @@
 import 'package:bcrypt/bcrypt.dart';
 import 'package:drift/drift.dart' hide Column;
-import 'package:listapay/core/security/pin_lockout_service.dart';
-import 'package:listapay/core/security/pin_policy.dart';
-import 'package:listapay/data/database/app_database.dart';
-import 'package:listapay/domain/entities/app_user.dart';
-import 'package:listapay/domain/repositories/auth_repository.dart';
+import 'package:ListaPay/core/security/pin_lockout_service.dart';
+import 'package:ListaPay/core/security/pin_policy.dart';
+import 'package:ListaPay/data/database/app_database.dart';
+import 'package:ListaPay/domain/entities/app_user.dart';
+import 'package:ListaPay/domain/repositories/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalAuthRepository implements AuthRepository {

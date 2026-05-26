@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:listapay/app.dart';
-import 'package:listapay/core/config/supabase_config.dart';
-import 'package:listapay/data/services/background_sync.dart';
+import 'package:ListaPay/app.dart';
+import 'package:ListaPay/core/config/supabase_config.dart';
+import 'package:ListaPay/data/services/background_sync.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {

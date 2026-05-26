@@ -1,6 +1,6 @@
-import 'package:listapay/data/database/app_database.dart';
-import 'package:listapay/core/utils/ph_time.dart';
-import 'package:listapay/domain/entities/debt_status.dart';
+import 'package:ListaPay/data/database/app_database.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/domain/entities/debt_status.dart';
 
 class SalesPeriodStats {
   const SalesPeriodStats({required this.total, required this.count});

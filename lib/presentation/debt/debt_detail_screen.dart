@@ -3,17 +3,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/core/utils/ph_time.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/data/services/receipt_service.dart';
-import 'package:listapay/domain/entities/customer_summary.dart';
-import 'package:listapay/domain/entities/debt_record.dart';
-import 'package:listapay/domain/entities/debt_status.dart';
-import 'package:listapay/domain/repositories/customer_repository.dart';
-import 'package:listapay/domain/repositories/debt_repository.dart';
-import 'package:listapay/presentation/auth/auth_cubit.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/data/services/receipt_service.dart';
+import 'package:ListaPay/domain/entities/customer_summary.dart';
+import 'package:ListaPay/domain/entities/debt_record.dart';
+import 'package:ListaPay/domain/entities/debt_status.dart';
+import 'package:ListaPay/domain/repositories/customer_repository.dart';
+import 'package:ListaPay/domain/repositories/debt_repository.dart';
+import 'package:ListaPay/presentation/auth/auth_cubit.dart';
 
 class DebtDetailScreen extends StatefulWidget {
   const DebtDetailScreen({super.key, required this.debtId});

@@ -1,9 +1,9 @@
 import 'package:intl/intl.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/core/utils/ph_time.dart';
-import 'package:listapay/domain/entities/completed_sale.dart';
-import 'package:listapay/domain/entities/debt_record.dart';
-import 'package:listapay/domain/entities/payment_method.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/domain/entities/completed_sale.dart';
+import 'package:ListaPay/domain/entities/debt_record.dart';
+import 'package:ListaPay/domain/entities/payment_method.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';

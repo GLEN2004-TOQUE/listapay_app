@@ -1,5 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:listapay/domain/entities/app_user.dart';
+import 'package:ListaPay/domain/entities/app_user.dart';
 
 enum DeviceRoleMode { unrestricted, admin, cashier, inventory }
 

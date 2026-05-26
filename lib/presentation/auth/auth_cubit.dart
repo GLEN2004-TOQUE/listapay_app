@@ -1,9 +1,9 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:listapay/data/repositories/local_auth_repository.dart';
-import 'package:listapay/data/services/device_role_service.dart';
-import 'package:listapay/domain/entities/app_user.dart';
-import 'package:listapay/domain/repositories/auth_repository.dart';
+import 'package:ListaPay/data/repositories/local_auth_repository.dart';
+import 'package:ListaPay/data/services/device_role_service.dart';
+import 'package:ListaPay/domain/entities/app_user.dart';
+import 'package:ListaPay/domain/repositories/auth_repository.dart';
 
 part 'auth_state.dart';
 

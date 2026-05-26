@@ -1,4 +1,4 @@
-import 'package:listapay/data/database/app_database.dart';
+import 'package:ListaPay/data/database/app_database.dart';
 
 /// Enqueues a delete for the cloud sync engine (PIN stays local).
 Future<void> enqueueSyncDelete(

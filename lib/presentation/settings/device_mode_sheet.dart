@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/data/services/device_role_service.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/data/services/device_role_service.dart';
 
 class DeviceModeSheet extends StatefulWidget {
   const DeviceModeSheet({super.key});

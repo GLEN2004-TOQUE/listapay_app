@@ -1,12 +1,12 @@
 import 'package:drift/drift.dart';
-import 'package:listapay/core/utils/ph_time.dart';
-import 'package:listapay/data/database/app_database.dart';
-import 'package:listapay/domain/entities/cart_line.dart';
-import 'package:listapay/domain/entities/completed_sale.dart';
-import 'package:listapay/domain/entities/customer_summary.dart';
-import 'package:listapay/domain/entities/payment_method.dart';
-import 'package:listapay/domain/repositories/customer_repository.dart';
-import 'package:listapay/domain/repositories/pos_repository.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/data/database/app_database.dart';
+import 'package:ListaPay/domain/entities/cart_line.dart';
+import 'package:ListaPay/domain/entities/completed_sale.dart';
+import 'package:ListaPay/domain/entities/customer_summary.dart';
+import 'package:ListaPay/domain/entities/payment_method.dart';
+import 'package:ListaPay/domain/repositories/customer_repository.dart';
+import 'package:ListaPay/domain/repositories/pos_repository.dart';
 
 class LocalPosRepository implements PosRepository {
   LocalPosRepository(this._db, this._customers);

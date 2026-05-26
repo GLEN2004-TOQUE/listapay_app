@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:listapay/domain/entities/cart_line.dart';
-import 'package:listapay/domain/entities/payment_method.dart';
+import 'package:ListaPay/domain/entities/cart_line.dart';
+import 'package:ListaPay/domain/entities/payment_method.dart';
 
 class CompletedSale extends Equatable {
   const CompletedSale({

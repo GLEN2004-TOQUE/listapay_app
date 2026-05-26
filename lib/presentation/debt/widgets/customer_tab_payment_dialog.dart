@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/domain/repositories/debt_repository.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/domain/repositories/debt_repository.dart';
 
 class CustomerTabPaymentDialog extends StatefulWidget {
   const CustomerTabPaymentDialog({

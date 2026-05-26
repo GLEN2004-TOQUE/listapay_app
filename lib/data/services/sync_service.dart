@@ -1,8 +1,8 @@
 import 'package:drift/drift.dart';
-import 'package:listapay/core/config/supabase_config.dart';
-import 'package:listapay/data/database/app_database.dart';
-import 'package:listapay/data/services/connectivity_service.dart';
-import 'package:listapay/data/services/store_session_service.dart';
+import 'package:ListaPay/core/config/supabase_config.dart';
+import 'package:ListaPay/data/database/app_database.dart';
+import 'package:ListaPay/data/services/connectivity_service.dart';
+import 'package:ListaPay/data/services/store_session_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SyncResult {

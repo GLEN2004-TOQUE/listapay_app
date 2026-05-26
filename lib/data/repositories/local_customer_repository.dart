@@ -1,9 +1,9 @@
 import 'package:drift/drift.dart';
-import 'package:listapay/data/database/app_database.dart';
-import 'package:listapay/data/services/sync_enqueue.dart';
-import 'package:listapay/domain/entities/customer.dart' as entities;
-import 'package:listapay/domain/entities/customer_summary.dart';
-import 'package:listapay/domain/repositories/customer_repository.dart';
+import 'package:ListaPay/data/database/app_database.dart';
+import 'package:ListaPay/data/services/sync_enqueue.dart';
+import 'package:ListaPay/domain/entities/customer.dart' as entities;
+import 'package:ListaPay/domain/entities/customer_summary.dart';
+import 'package:ListaPay/domain/repositories/customer_repository.dart';
 
 class LocalCustomerRepository implements CustomerRepository {
   LocalCustomerRepository(this._db);

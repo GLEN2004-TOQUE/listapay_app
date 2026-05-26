@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:listapay/domain/entities/customer_summary.dart';
+import 'package:ListaPay/domain/entities/customer_summary.dart';
 
 class Customer extends Equatable {
   const Customer({

@@ -1,7 +1,7 @@
-import 'package:listapay/domain/entities/cart_line.dart';
-import 'package:listapay/domain/entities/completed_sale.dart';
-import 'package:listapay/domain/entities/customer_summary.dart';
-import 'package:listapay/domain/entities/payment_method.dart';
+import 'package:ListaPay/domain/entities/cart_line.dart';
+import 'package:ListaPay/domain/entities/completed_sale.dart';
+import 'package:ListaPay/domain/entities/customer_summary.dart';
+import 'package:ListaPay/domain/entities/payment_method.dart';
 
 class PosException implements Exception {
   const PosException(this.message);

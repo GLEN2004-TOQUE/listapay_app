@@ -1,10 +1,10 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:listapay/core/security/device_binding_service.dart';
-import 'package:listapay/core/security/device_fingerprint_service.dart';
-import 'package:listapay/core/security/device_id_config.dart';
-import 'package:listapay/core/security/device_id_generator.dart';
+import 'package:ListaPay/core/security/device_binding_service.dart';
+import 'package:ListaPay/core/security/device_fingerprint_service.dart';
+import 'package:ListaPay/core/security/device_id_config.dart';
+import 'package:ListaPay/core/security/device_id_generator.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 void main() {

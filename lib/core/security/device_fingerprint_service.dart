@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
-import 'package:listapay/core/security/device_id_config.dart';
-import 'package:listapay/core/security/device_id_generator.dart';
+import 'package:ListaPay/core/security/device_id_config.dart';
+import 'package:ListaPay/core/security/device_id_generator.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 enum DevicePlatformKind { android, ios, unsupported }

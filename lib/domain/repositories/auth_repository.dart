@@ -1,4 +1,4 @@
-import 'package:listapay/domain/entities/app_user.dart';
+import 'package:ListaPay/domain/entities/app_user.dart';
 
 class LoginResult {
   const LoginResult({

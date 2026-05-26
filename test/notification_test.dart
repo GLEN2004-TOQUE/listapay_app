@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:listapay/core/constants/notification_channels.dart';
+import 'package:ListaPay/core/constants/notification_channels.dart';
 
 void main() {
   test('notification channel ids are defined', () {

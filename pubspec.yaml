@@ -1,4 +1,4 @@
-name: listapay
+name: ListaPay
 description: Offline-first POS and store management for Philippine retail.
 publish_to: 'none'
 version: 1.0.0+1
@@ -45,6 +45,7 @@ dev_dependencies:
   flutter_native_splash: ^2.4.6
   drift_dev: ^2.25.0
   build_runner: ^2.4.15
+  image: ^4.8.0
 
 flutter_launcher_icons:
   android: true

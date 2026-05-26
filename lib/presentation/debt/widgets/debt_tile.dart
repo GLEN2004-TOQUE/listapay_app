@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/core/utils/ph_time.dart';
-import 'package:listapay/domain/entities/debt_record.dart';
-import 'package:listapay/domain/entities/debt_status.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/domain/entities/debt_record.dart';
+import 'package:ListaPay/domain/entities/debt_status.dart';
 
 class DebtTile extends StatelessWidget {
   const DebtTile({super.key, required this.debt, required this.onTap});

@@ -3,11 +3,11 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:listapay/core/config/device_tracker_config.dart';
-import 'package:listapay/core/security/device_binding_service.dart';
-import 'package:listapay/core/security/device_fingerprint_service.dart';
-import 'package:listapay/data/services/connectivity_service.dart';
-import 'package:listapay/data/services/store_session_service.dart';
+import 'package:ListaPay/core/config/device_tracker_config.dart';
+import 'package:ListaPay/core/security/device_binding_service.dart';
+import 'package:ListaPay/core/security/device_fingerprint_service.dart';
+import 'package:ListaPay/data/services/connectivity_service.dart';
+import 'package:ListaPay/data/services/store_session_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class DeviceTrackerResult {

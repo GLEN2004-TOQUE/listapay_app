@@ -1,14 +1,14 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
-import 'package:listapay/core/utils/ph_time.dart';
-import 'package:listapay/core/utils/phone_format.dart';
-import 'package:listapay/core/utils/sms_templates.dart';
-import 'package:listapay/data/database/app_database.dart';
-import 'package:listapay/data/services/connectivity_service.dart';
-import 'package:listapay/data/services/notification_service.dart';
-import 'package:listapay/data/services/sms_service.dart';
-import 'package:listapay/domain/repositories/debt_repository.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
+import 'package:ListaPay/core/utils/phone_format.dart';
+import 'package:ListaPay/core/utils/sms_templates.dart';
+import 'package:ListaPay/data/database/app_database.dart';
+import 'package:ListaPay/data/services/connectivity_service.dart';
+import 'package:ListaPay/data/services/notification_service.dart';
+import 'package:ListaPay/data/services/sms_service.dart';
+import 'package:ListaPay/domain/repositories/debt_repository.dart';
 
 class DebtSmsReminderResult {
   const DebtSmsReminderResult({

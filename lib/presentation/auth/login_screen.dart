@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listapay/core/router/app_router.dart';
-import 'package:listapay/core/security/pin_policy.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/data/services/device_role_service.dart';
-import 'package:listapay/presentation/auth/auth_cubit.dart';
+import 'package:ListaPay/core/router/app_router.dart';
+import 'package:ListaPay/core/security/pin_policy.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/data/services/device_role_service.dart';
+import 'package:ListaPay/presentation/auth/auth_cubit.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:listapay/core/config/supabase_config.dart';
-import 'package:listapay/core/security/device_binding_service.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/data/services/store_session_service.dart';
-import 'package:listapay/data/services/sync_service.dart';
+import 'package:ListaPay/core/config/supabase_config.dart';
+import 'package:ListaPay/core/security/device_binding_service.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/data/services/store_session_service.dart';
+import 'package:ListaPay/data/services/sync_service.dart';
 
 class SyncSettingsSheet extends StatefulWidget {
   const SyncSettingsSheet({super.key});

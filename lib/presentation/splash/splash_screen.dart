@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:listapay/core/theme/app_theme.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/core/theme/app_theme.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

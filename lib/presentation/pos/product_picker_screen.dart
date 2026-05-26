@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/core/widgets/simple_loading.dart';
-import 'package:listapay/domain/repositories/inventory_repository.dart';
-import 'package:listapay/presentation/inventory/product_list_cubit.dart';
-import 'package:listapay/presentation/pos/cart_cubit.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/core/widgets/simple_loading.dart';
+import 'package:ListaPay/domain/repositories/inventory_repository.dart';
+import 'package:ListaPay/presentation/inventory/product_list_cubit.dart';
+import 'package:ListaPay/presentation/pos/cart_cubit.dart';
 
 class ProductPickerScreen extends StatelessWidget {
   const ProductPickerScreen({super.key});

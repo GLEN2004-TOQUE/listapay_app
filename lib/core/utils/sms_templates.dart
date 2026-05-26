@@ -1,6 +1,6 @@
 import 'package:intl/intl.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/core/utils/ph_time.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/core/utils/ph_time.dart';
 
 String buildDueSoonSms({
   required String customerName,

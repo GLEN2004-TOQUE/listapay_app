@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:listapay/domain/entities/product_item.dart';
-import 'package:listapay/domain/repositories/inventory_repository.dart';
+import 'package:ListaPay/domain/entities/product_item.dart';
+import 'package:ListaPay/domain/repositories/inventory_repository.dart';
 
 part 'product_list_state.dart';
 

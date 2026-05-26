@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:listapay/core/utils/currency_format.dart';
-import 'package:listapay/domain/entities/product_item.dart';
+import 'package:ListaPay/core/utils/currency_format.dart';
+import 'package:ListaPay/domain/entities/product_item.dart';
 
 void main() {
   test('formatPeso formats Philippine peso', () {
